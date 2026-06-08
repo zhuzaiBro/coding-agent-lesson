@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "installCommand": "bun install",
+  "installCommand": "bun install --frozen-lockfile",
   "buildCommand": "bun run build",
   "env": {
     "NEXT_PUBLIC_API_BASE_URL": "https://biz.zood.work"

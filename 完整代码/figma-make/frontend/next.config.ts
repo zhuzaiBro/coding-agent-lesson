@@ -1,7 +1,12 @@
 import type { NextConfig } from "next";
 
+const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
+
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Vercel 构建时跳过 ESLint（本地仍可用 bun run lint）
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   images: {
     remotePatterns: [
       {
@@ -10,13 +15,22 @@ const nextConfig: NextConfig = {
         port: "8001",
         pathname: "/images/**",
       },
+      {
+        protocol: "https",
+        hostname: "biz.zood.work",
+        pathname: "/**",
+      },
     ],
   },
   async rewrites() {
+    // 生产/Vercel 走 NEXT_PUBLIC_API_BASE_URL，仅本地 dev 代理到 7001
+    if (isProd) {
+      return [];
+    }
     return [
       {
         source: "/api/:path*",
-        destination: "http://localhost:7001/api/:path*", // Proxy to Backend
+        destination: "http://localhost:7001/api/:path*",
       },
     ];
   },

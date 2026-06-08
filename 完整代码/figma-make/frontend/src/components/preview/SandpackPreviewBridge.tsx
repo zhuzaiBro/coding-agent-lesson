@@ -16,7 +16,10 @@ export function SandpackPreviewBridge() {
   const scheduledRef = useRef(false);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const statusRef = useRef(sandpack.status);
-  statusRef.current = sandpack.status;
+
+  useEffect(() => {
+    statusRef.current = sandpack.status;
+  }, [sandpack.status]);
 
   const scheduleRefresh = () => {
     if (scheduledRef.current) return;
