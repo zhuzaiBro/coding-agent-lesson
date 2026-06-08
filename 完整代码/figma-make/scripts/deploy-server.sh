@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 远端部署：拉代码 → uv sync → 重启服务
+# 远端部署：拉代码 → uv sync → 重装/重启 systemd
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -23,17 +23,12 @@ log "uv sync @ ${SERVER_DIR}"
 cd "${SERVER_DIR}"
 uv sync
 
-if command -v systemctl >/dev/null 2>&1 && systemctl cat "${SYSTEMD_SERVICE}" &>/dev/null; then
-  log "systemctl restart ${SYSTEMD_SERVICE}"
-  if ! sudo systemctl restart "${SYSTEMD_SERVICE}"; then
-    log "WARN: restart 失败，在服务器执行一次："
-    log "  bash ${FIGMA_MAKE_ROOT}/scripts/install-systemd.sh"
-    sudo systemctl status "${SYSTEMD_SERVICE}" --no-pager || true
-    sudo systemd-analyze verify "${SYSTEMD_SERVICE}.service" 2>&1 || true
-  fi
+if command -v systemctl >/dev/null 2>&1 && bash -lc 'command -v uv' &>/dev/null; then
+  log "安装/更新 systemd（写入 uv 绝对路径）"
+  bash -l "${SCRIPT_DIR}/install-systemd.sh"
 else
-  log "WARN: 未配置 systemd，跳过重启。安装服务："
-  log "  bash ${FIGMA_MAKE_ROOT}/scripts/install-systemd.sh"
+  log "WARN: 跳过 systemd。手动启动："
+  log "  cd ${SERVER_DIR} && uv run uvicorn main:app --host 0.0.0.0 --port 7001"
 fi
 
 log "done"

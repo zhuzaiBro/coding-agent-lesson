@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 在服务器上运行一次，生成并启用 systemd 服务
+# 在服务器上运行：按真实路径生成 systemd unit（uv 必须用绝对路径）
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -15,7 +15,13 @@ if [[ ! -f "${SERVER_DIR}/pyproject.toml" ]]; then
   exit 1
 fi
 
-UV_PATH="$(command -v uv)"
+UV_PATH="${UV_PATH:-$(bash -lc 'command -v uv' 2>/dev/null || true)}"
+UV_PATH="${UV_PATH:-/root/.local/bin/uv}"
+if [[ ! -x "${UV_PATH}" ]]; then
+  echo "ERROR: 找不到 uv（尝试过 ${UV_PATH}）" >&2
+  exit 1
+fi
+
 UV_BIN_DIR="$(dirname "${UV_PATH}")"
 log "SERVER_DIR=${SERVER_DIR}"
 log "UV_PATH=${UV_PATH}"
