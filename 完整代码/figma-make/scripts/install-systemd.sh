@@ -15,10 +15,15 @@ if [[ ! -f "${SERVER_DIR}/pyproject.toml" ]]; then
   exit 1
 fi
 
-UV_PATH="${UV_PATH:-$(bash -lc 'command -v uv' 2>/dev/null || true)}"
-UV_PATH="${UV_PATH:-/root/.local/bin/uv}"
+if [[ -x "${UV_PATH:-}" ]]; then
+  :
+elif [[ -x /root/.local/bin/uv ]]; then
+  UV_PATH=/root/.local/bin/uv
+else
+  UV_PATH="$(bash -lc 'command -v uv' 2>/dev/null || true)"
+fi
 if [[ ! -x "${UV_PATH}" ]]; then
-  echo "ERROR: 找不到 uv（尝试过 ${UV_PATH}）" >&2
+  echo "ERROR: 找不到 uv，请设置 UV_PATH 或安装到 /root/.local/bin/uv" >&2
   exit 1
 fi
 
