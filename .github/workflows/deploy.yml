@@ -1,0 +1,110 @@
+# CI/CD：push main 后按变更路径自动部署
+# - server 变更 → SSH 到 biz.zood.work 拉代码 + 重启
+# - frontend 变更 → 调用 Vercel Deploy Hook 重新打包
+#
+# GitHub Secrets（Settings → Secrets and variables → Actions）：
+#   SSH_PRIVATE_KEY        登录 biz.zood.work 的私钥（整段 PEM）
+#   SSH_USER               如 deploy
+#   SERVER_REPO_PATH       服务器上 git 仓库绝对路径，如 /opt/coding-agent-lesson
+#   VERCEL_DEPLOY_HOOK_URL Vercel 项目 → Settings → Git → Deploy Hooks 创建的 URL
+#
+# 可选 Variables：
+#   SSH_HOST               默认 biz.zood.work
+#   GIT_BRANCH             默认 main
+#   SYSTEMD_SERVICE        默认 figma-make-server
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "完整代码/figma-make/server/**"
+      - "完整代码/figma-make/frontend/**"
+      - "完整代码/figma-make/scripts/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "部署目标"
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - server
+          - frontend
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      server: ${{ steps.filter.outputs.server }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            server:
+              - '完整代码/figma-make/server/**'
+              - '完整代码/figma-make/scripts/deploy-server.sh'
+              - '完整代码/figma-make/scripts/systemd/**'
+            frontend:
+              - '完整代码/figma-make/frontend/**'
+
+  deploy-server:
+    needs: detect-changes
+    if: |
+      github.event_name == 'workflow_dispatch' && (github.event.inputs.target == 'all' || github.event.inputs.target == 'server') ||
+      github.event_name == 'push' && needs.detect-changes.outputs.server == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: SSH deploy server
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ vars.SSH_HOST || 'biz.zood.work' }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ vars.SSH_PORT || '22' }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            export REPO_ROOT="${{ secrets.SERVER_REPO_PATH }}"
+            export GIT_BRANCH="${{ vars.GIT_BRANCH || 'main' }}"
+            export SYSTEMD_SERVICE="${{ vars.SYSTEMD_SERVICE || 'figma-make-server' }}"
+            export SERVER_REL_PATH="完整代码/figma-make/server"
+            bash "${REPO_ROOT}/完整代码/figma-make/scripts/deploy-server.sh"
+
+  deploy-frontend:
+    needs: detect-changes
+    if: |
+      github.event_name == 'workflow_dispatch' && (github.event.inputs.target == 'all' || github.event.inputs.target == 'frontend') ||
+      github.event_name == 'push' && needs.detect-changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Trigger Vercel redeploy
+        env:
+          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${VERCEL_DEPLOY_HOOK_URL}" ]]; then
+            echo "ERROR: 未配置 VERCEL_DEPLOY_HOOK_URL secret" >&2
+            exit 1
+          fi
+          echo "POST Vercel deploy hook..."
+          code=$(curl -sS -o response.json -w "%{http_code}" -X POST "${VERCEL_DEPLOY_HOOK_URL}")
+          cat response.json
+          echo ""
+          if [[ "${code}" -lt 200 || "${code}" -ge 300 ]]; then
+            echo "Vercel hook failed HTTP ${code}" >&2
+            exit 1
+          fi
+          echo "Vercel deploy triggered (HTTP ${code})"
