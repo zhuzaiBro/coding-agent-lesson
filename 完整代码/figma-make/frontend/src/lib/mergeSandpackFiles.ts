@@ -527,24 +527,24 @@ if (rootEl) {
 
     merged["/src/lib/router.tsx"] = createRouterFallback();
 
-    const generatedPkg = generatedFiles?.["/package.json"]?.code;
-    const templatePkg = merged["/package.json"]?.code;
-    merged["/package.json"] = {
-      code: patchPackageJsonForSandpack(generatedPkg ?? templatePkg),
-    };
-
     for (const [path, file] of Object.entries(merged)) {
       if (path === "/package.json" || !isCodePath(path)) continue;
       merged[path] = prepareFileForSandpack(path, file);
     }
 
-    applySandpackViteJsConfig(merged);
     if (merged["/index.html"]) {
       merged["/index.html"] = {
         code: ensureIndexHtmlWithTailwind(merged["/index.html"].code),
       };
     }
   }
+
+  // 模板与生成产物均可能带 Vite 6；Nodebox 生产环境只认 Vite 4 + esbuild-wasm
+  const generatedPkg = generatedFiles?.["/package.json"]?.code;
+  merged["/package.json"] = {
+    code: patchPackageJsonForSandpack(generatedPkg ?? merged["/package.json"]?.code),
+  };
+  applySandpackViteJsConfig(merged);
 
   return merged;
 }

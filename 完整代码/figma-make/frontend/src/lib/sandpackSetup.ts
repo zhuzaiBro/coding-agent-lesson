@@ -4,17 +4,12 @@ import {
   getPreviewDevDependencies,
 } from "./sandpackDependencies";
 
+/** 生产 Nodebox 必须用 Vite 4 + esbuild-wasm，始终注入 customSetup（含仅模板预览时） */
 export function getSandpackCustomSetup(files: SandpackFiles | null) {
-  const hasGenerated =
-    files !== null && Object.keys(files).length > 0 && Boolean(files["/App.tsx"]);
-
-  if (!hasGenerated) {
-    return undefined;
-  }
+  const hasIndexEntry = Boolean(files?.["/index.tsx"]?.code?.includes("createRoot"));
 
   return {
-    entry: files["/index.tsx"] ? "/index.tsx" : "/App.tsx",
-    /** 与本地 compile-check 一致，使用 Vite 而非 CRA（避免 react-scripts 缺失导致 iframe 白屏） */
+    entry: hasIndexEntry ? "/index.tsx" : "/App.tsx",
     environment: "node" as const,
     dependencies: getPreviewDependencies(files),
     devDependencies: getPreviewDevDependencies(files),

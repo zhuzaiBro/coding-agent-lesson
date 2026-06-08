@@ -34,6 +34,7 @@ export const VITE_SANDPACK_DEV_DEPS: Record<string, string> = {
 const SANDBOX_TOOLCHAIN_BLOCKLIST = new Set([
   "vite",
   "rollup",
+  "esbuild",
   "@rollup/wasm-node",
   "@vitejs/plugin-react",
   "@vitejs/plugin-react-swc",
@@ -165,6 +166,17 @@ export function patchPackageJsonForSandpack(code: string | undefined): string {
     overrides: {
       ...((pkg.overrides as Record<string, string>) ?? {}),
       rollup: "npm:@rollup/wasm-node@4.61.1",
+      vite: "4.2.0",
+      esbuild: "npm:esbuild-wasm@0.17.19",
+    },
+    pnpm: {
+      overrides: {
+        ...(((pkg.pnpm as { overrides?: Record<string, string> })?.overrides) ??
+          {}),
+        vite: "4.2.0",
+        esbuild: "npm:esbuild-wasm@0.17.19",
+        rollup: "npm:@rollup/wasm-node@4.61.1",
+      },
     },
   };
 
