@@ -6,11 +6,11 @@ from pydantic import BaseModel, Field
 from config.supabase import build_mcp_url, is_read_only, is_supabase_configured
 from config.supabase import OAUTH_COOKIE
 from services.supabase.mcp_client import get_supabase_mcp_client, reset_supabase_mcp_client
+from config.app_urls import get_frontend_origin
 from services.supabase.oauth_flow import (
     clear_session,
     complete_authorization,
-    get_frontend_origin,
-    get_oauth_redirect_uri,
+    resolve_frontend_origin,
     start_authorization,
 )
 
@@ -27,9 +27,14 @@ class MigrationRequest(BaseModel):
 
 
 @router.get("/oauth/start")
-async def supabase_oauth_start():
+async def supabase_oauth_start(request: Request):
     """返回 Supabase 官方 OAuth 授权页 URL，并在浏览器中打开即可完成授权。"""
-    authorize_url, session_id = start_authorization()
+    frontend_origin = (
+        request.headers.get("x-frontend-origin")
+        or request.headers.get("origin")
+        or ""
+    ).strip()
+    authorize_url, session_id = start_authorization(frontend_origin=frontend_origin)
     response = JSONResponse({"authorizeUrl": authorize_url})
     response.set_cookie(
         key=OAUTH_COOKIE,
@@ -49,17 +54,18 @@ async def supabase_oauth_callback(
     error: str = "",
 ):
     """Supabase OAuth 回调；成功后跳回前端。"""
-    frontend = get_frontend_origin()
     if error:
+        frontend = get_frontend_origin()
         return RedirectResponse(
             f"{frontend}/auth/supabase/callback?error={error}"
         )
     if not code or not state:
         return RedirectResponse(
-            f"{frontend}/auth/supabase/callback?error=missing_code"
+            f"{get_frontend_origin()}/auth/supabase/callback?error=missing_code"
         )
 
     session_id = complete_authorization(code, state)
+    frontend = resolve_frontend_origin(session_id)
     if not session_id:
         return RedirectResponse(
             f"{frontend}/auth/supabase/callback?error=invalid_state"

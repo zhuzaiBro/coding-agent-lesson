@@ -10,6 +10,10 @@ export async function openSupabaseAuthorizePage(): Promise<{
     method: "GET",
     credentials: "include",
     cache: "no-store",
+    headers: {
+      "X-Frontend-Origin":
+        typeof window !== "undefined" ? window.location.origin : "",
+    },
   });
 
   if (!res.ok) {

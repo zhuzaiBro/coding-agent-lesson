@@ -11,6 +11,8 @@ from urllib.parse import urlencode
 
 import httpx
 
+from config.app_urls import get_frontend_origin, get_supabase_oauth_redirect_uri
+
 _OAUTH_METADATA_URL = "https://api.supabase.com/.well-known/oauth-authorization-server"
 _OAUTH_SCOPES = (
     "organizations:read projects:read projects:write "
@@ -41,15 +43,15 @@ def get_oauth_metadata() -> Dict[str, Any]:
 
 
 def get_oauth_redirect_uri() -> str:
-    explicit = os.getenv("SUPABASE_OAUTH_REDIRECT_URI", "").strip()
-    if explicit:
-        return explicit
-    port = os.getenv("PORT", "7001")
-    return f"http://localhost:{port}/api/supabase/oauth/callback"
+    return get_supabase_oauth_redirect_uri()
 
 
-def get_frontend_origin() -> str:
-    return os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+def resolve_frontend_origin(session_id: Optional[str]) -> str:
+    if session_id and session_id in _sessions:
+        origin = _sessions[session_id].get("frontend_origin")
+        if origin:
+            return str(origin).rstrip("/")
+    return get_frontend_origin()
 
 
 def _get_or_register_client(redirect_uri: str) -> Dict[str, str]:
@@ -88,7 +90,7 @@ def _get_or_register_client(redirect_uri: str) -> Dict[str, str]:
     return _client_cache
 
 
-def start_authorization() -> Tuple[str, str]:
+def start_authorization(frontend_origin: str = "") -> Tuple[str, str]:
     """返回 (authorize_url, session_id)。"""
     redirect_uri = get_oauth_redirect_uri()
     client = _get_or_register_client(redirect_uri)
@@ -98,10 +100,12 @@ def start_authorization() -> Tuple[str, str]:
     state = secrets.token_urlsafe(24)
     verifier, challenge = _pkce_pair()
 
+    origin = frontend_origin.strip() or None
     _sessions[session_id] = {
         "state": state,
         "code_verifier": verifier,
         "created_at": time.time(),
+        "frontend_origin": origin,
     }
     _state_to_sid[state] = session_id
 

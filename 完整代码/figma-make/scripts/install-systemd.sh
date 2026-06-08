@@ -40,6 +40,7 @@ After=network.target
 Type=simple
 WorkingDirectory=${SERVER_DIR}
 Environment=PORT=7001
+EnvironmentFile=-${SERVER_DIR}/.env
 Environment=PATH=${UV_BIN_DIR}:/usr/local/bin:/usr/bin:/bin
 ExecStart=${UV_PATH} run uvicorn main:app --host 0.0.0.0 --port 7001
 Restart=on-failure
