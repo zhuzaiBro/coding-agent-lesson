@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "biz.zood.work",
+        hostname: "coding-agent.zood.work",
         pathname: "/**",
       },
     ],

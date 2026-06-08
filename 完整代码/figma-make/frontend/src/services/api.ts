@@ -1,11 +1,12 @@
 // API 请求封装
+import { API_BASE_URL } from "@/constants/config";
 import { ChatMessage } from "@/types/message";
 import { StreamEvent } from "@/types/api";
 
 export async function getReactTS_Template(): Promise<
   Record<string, { code: string }>
 > {
-  const response = await fetch("/api/template/react-ts");
+  const response = await fetch(`${API_BASE_URL}/api/template/react-ts`);
   if (!response.ok) {
     throw new Error("Failed to fetch template");
   }
@@ -77,8 +78,7 @@ export async function generateAppStream(
   onChunk: (event: StreamEvent) => void,
 ): Promise<void> {
   try {
-    // 走 Next.js 代理，避免跨域；尾斜杠避免 FastAPI 307 重定向打断流
-    const response = await fetch("/api/chat/", {
+    const response = await fetch(`${API_BASE_URL}/api/chat/`, {
       method: "POST",
       credentials: "include",
       headers: {

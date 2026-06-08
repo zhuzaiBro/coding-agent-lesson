@@ -6,6 +6,7 @@ import {
   loadFigmaOAuthConfig,
   type FigmaOAuthConfig,
 } from "@/lib/figmaOAuthConfig";
+import { API_BASE_URL } from "@/constants/config";
 import { fetchFigmaOAuthConfigInfo } from "@/services/figmaApi";
 
 type FigmaOAuthDialogProps = {
@@ -24,7 +25,7 @@ export function FigmaOAuthDialog({
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
   const [redirectUri, setRedirectUri] = useState(
-    "http://localhost:7001/api/figma/oauth/callback",
+    `${API_BASE_URL}/api/figma/oauth/callback`,
   );
   const [docsUrl, setDocsUrl] = useState(
     "https://developers.figma.com/docs/figma-mcp-server/remote-server-installation/",
