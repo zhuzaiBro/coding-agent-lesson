@@ -9,6 +9,8 @@
 # 环境变量：
 #   REPO_ROOT / SERVER_REPO_PATH  git 仓库根（可选，默认从脚本位置推导）
 #   GIT_BRANCH                    默认 main
+#   GIT_REMOTE_URL                （推荐）origin 地址，如 git@github.com:zhuzaiBro/coding-agent-lesson.git
+#   GIT_RETRY_MAX                 git 重试次数，默认 5
 #   SYSTEMD_SERVICE               默认 figma-make-server
 #   SKIP_GIT                      设为 1 则跳过 git pull
 set -euo pipefail
@@ -19,9 +21,86 @@ DEFAULT_REPO_ROOT="$(cd "${FIGMA_MAKE_ROOT}/../.." && pwd)"
 REPO_ROOT="${REPO_ROOT:-${SERVER_REPO_PATH:-${DEFAULT_REPO_ROOT}}}"
 SERVER_REL_PATH="${SERVER_REL_PATH:-完整代码/figma-make/server}"
 GIT_BRANCH="${GIT_BRANCH:-main}"
+GIT_RETRY_MAX="${GIT_RETRY_MAX:-5}"
 SYSTEMD_SERVICE="${SYSTEMD_SERVICE:-figma-make-server}"
 
 log() { echo "[deploy-server] $*"; }
+
+run_with_retry() {
+  local label="$1"
+  shift
+  local attempt=1
+  local delay=5
+  while [[ "${attempt}" -le "${GIT_RETRY_MAX}" ]]; do
+    if "$@"; then
+      return 0
+    fi
+    if [[ "${attempt}" -eq "${GIT_RETRY_MAX}" ]]; then
+      break
+    fi
+    log "WARN: ${label} 失败 (${attempt}/${GIT_RETRY_MAX})，${delay}s 后重试..."
+    sleep "${delay}"
+    attempt=$((attempt + 1))
+    delay=$((delay * 2))
+  done
+  return 1
+}
+
+https_to_ssh_url() {
+  local url="$1"
+  if [[ "${url}" == https://github.com/* ]]; then
+    echo "git@github.com:${url#https://github.com/}"
+    return 0
+  fi
+  return 1
+}
+
+ensure_git_remote() {
+  local repo_root="$1"
+  cd "${repo_root}"
+  if [[ -n "${GIT_REMOTE_URL:-}" ]]; then
+    local current
+    current="$(git remote get-url origin 2>/dev/null || true)"
+    if [[ "${current}" != "${GIT_REMOTE_URL}" ]]; then
+      log "设置 origin=${GIT_REMOTE_URL}"
+      git remote set-url origin "${GIT_REMOTE_URL}"
+    fi
+  fi
+}
+
+git_pull_repo() {
+  local repo_root="$1"
+  cd "${repo_root}"
+  ensure_git_remote "${repo_root}"
+  git fetch origin "${GIT_BRANCH}"
+  git checkout "${GIT_BRANCH}"
+  git pull --ff-only origin "${GIT_BRANCH}"
+}
+
+git_pull_repo_with_fallback() {
+  local repo_root="$1"
+  if run_with_retry "git pull" git_pull_repo "${repo_root}"; then
+    return 0
+  fi
+
+  local url ssh_url
+  url="$(cd "${repo_root}" && git remote get-url origin)"
+  if ssh_url="$(https_to_ssh_url "${url}")"; then
+    log "HTTPS 不稳定，切换 origin 为 SSH 后重试: ${ssh_url}"
+    cd "${repo_root}"
+    git remote set-url origin "${ssh_url}"
+    if run_with_retry "git pull (ssh)" git_pull_repo "${repo_root}"; then
+      return 0
+    fi
+  fi
+
+  log "ERROR: git pull 失败。建议在服务器配置 SSH 拉取："
+  log "  1) ssh-keygen -t ed25519 -C deploy@$(hostname)"
+  log "  2) 把 ~/.ssh/id_ed25519.pub 加到 GitHub → Settings → Deploy keys"
+  log "  3) cd ${repo_root} && git remote set-url origin git@github.com:zhuzaiBro/coding-agent-lesson.git"
+  log "  或在 GitHub Actions Secrets 设置 GIT_REMOTE_URL 为上述 SSH 地址"
+  return 1
+}
 
 resolve_server_dir() {
   local candidate
@@ -41,18 +120,12 @@ resolve_server_dir() {
 if [[ "${SKIP_GIT:-0}" != "1" ]]; then
   if [[ -d "${REPO_ROOT}/.git" ]]; then
     log "git pull @ ${REPO_ROOT} (branch=${GIT_BRANCH})"
-    cd "${REPO_ROOT}"
-    git fetch origin "${GIT_BRANCH}"
-    git checkout "${GIT_BRANCH}"
-    git pull --ff-only origin "${GIT_BRANCH}"
+    git_pull_repo_with_fallback "${REPO_ROOT}"
   else
     log "WARN: ${REPO_ROOT} 不是 git 根目录，跳过 pull（使用脚本路径 ${DEFAULT_REPO_ROOT}）"
     if [[ -d "${DEFAULT_REPO_ROOT}/.git" ]]; then
       log "git pull @ ${DEFAULT_REPO_ROOT} (branch=${GIT_BRANCH})"
-      cd "${DEFAULT_REPO_ROOT}"
-      git fetch origin "${GIT_BRANCH}"
-      git checkout "${GIT_BRANCH}"
-      git pull --ff-only origin "${GIT_BRANCH}"
+      git_pull_repo_with_fallback "${DEFAULT_REPO_ROOT}"
       REPO_ROOT="${DEFAULT_REPO_ROOT}"
     fi
   fi
