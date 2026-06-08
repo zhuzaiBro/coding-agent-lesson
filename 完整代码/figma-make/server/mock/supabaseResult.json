@@ -1,0 +1,8 @@
+{
+  "enabled": true,
+  "projectUrl": "https://abcdefgh.supabase.co",
+  "publishableKeyHint": true,
+  "schemaSummary": "### public.users\n- id: uuid (pk)\n- email: text\n- created_at: timestamptz",
+  "typescriptTypes": "export type User = { id: string; email: string; created_at: string }",
+  "readOnly": true
+}

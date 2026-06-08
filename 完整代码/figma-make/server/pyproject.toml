@@ -1,0 +1,27 @@
+[project]
+name = "duyi-figma-make-server"
+version = "0.1.0"
+description = "Figma to code generation server - Python edition"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "sse-starlette>=2.1.0",
+    "python-multipart>=0.0.12",
+    "python-dotenv>=1.0.0",
+    "langchain>=0.3.0",
+    "langchain-openai>=0.2.0",
+    "langgraph>=0.2.0",
+    "pydantic>=2.9.0",
+    "oss2>=2.19.0",
+    "httpx>=0.27.0",
+    "aiofiles>=24.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.7.0",
+]
+
+[dependency-groups]
+dev = ["ruff>=0.7.0"]

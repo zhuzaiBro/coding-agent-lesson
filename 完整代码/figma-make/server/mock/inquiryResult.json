@@ -1,0 +1,14 @@
+{
+  "status": "ok",
+  "question": "帮我检查下订单 ORD-8821 的计算数据链路",
+  "message": "订单 ORD-8821 金额计算链路：orders.total = sum(order_items.line_total)；line_total = quantity × unit_price；unit_price 来自 pricing_rules。当前库中该订单 total=1280.00，与明细汇总一致。",
+  "trace": [
+    {
+      "round": 1,
+      "sql": "SELECT * FROM orders WHERE id = 'ORD-8821' LIMIT 1",
+      "status": "ok",
+      "resultPreview": "id=ORD-8821, total=1280.00"
+    }
+  ],
+  "rounds": 2
+}
