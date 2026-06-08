@@ -47,7 +47,20 @@ function parseSseBuffer(
     if (!jsonStr) continue;
 
     try {
-      const event = JSON.parse(jsonStr) as StreamEvent;
+      const raw = JSON.parse(jsonStr) as StreamEvent & {
+        message?: string;
+        nonBlocking?: boolean;
+      };
+      const event: StreamEvent =
+        raw.type === "error" && raw.data === undefined
+          ? {
+              type: "error",
+              data: {
+                message: raw.message ?? "未知错误",
+                nonBlocking: raw.nonBlocking,
+              },
+            }
+          : raw;
       console.log("[Stream] Parsed event:", event.type);
       onChunk(event);
     } catch (e) {

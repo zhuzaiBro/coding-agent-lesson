@@ -7,8 +7,22 @@ from sse_starlette.sse import EventSourceResponse
 
 from agents.graphs.main_graph import build_agent
 from agents.adapters.route_registry import resolve_route_adapter
+from agents.utils.model import get_main_model_provider
 from config.mock import DEFAULT_MOCK_PRESET, MOCK_PRESETS, resolve_mock_config
 from config.chat import NODE_HANDLERS
+
+
+def _missing_model_key_message() -> str | None:
+    provider = get_main_model_provider().lower()
+    key_by_provider = {
+        "deepseek": "DEEPSEEK_API_KEY",
+        "glm": "GLM_API_KEY",
+        "qwen": "QWEN_API_KEY",
+    }
+    key_name = key_by_provider.get(provider, "DEEPSEEK_API_KEY")
+    if os.getenv(key_name, "").strip():
+        return None
+    return f"服务端未配置 {key_name}（当前 MAIN_MODEL_PROVIDER={provider}），请在服务器 .env 中填写后重启"
 
 router = APIRouter()
 
@@ -85,6 +99,16 @@ async def chat(request: Request):
         # 先发一个空注释包建立连接，部分浏览器/代理在收到第一条数据前不认为连接已就绪
         yield {"data": "", "event": "comment"}
 
+        missing_key = _missing_model_key_message()
+        if missing_key:
+            yield {
+                "data": json.dumps(
+                    {"type": "error", "data": {"message": missing_key}}
+                )
+            }
+            yield {"data": json.dumps({"type": "done"})}
+            return
+
         try:
             # stream_mode="updates" 表示每个节点完成后立即推送该节点的 State 增量
             # 而不是等整条流水线结束才一次性返回，前端可实时显示每个步骤的进度
@@ -122,8 +146,7 @@ async def chat(request: Request):
                 "data": json.dumps(
                     {
                         "type": "error",
-                        "message": str(e),
-                        "nonBlocking": False,
+                        "data": {"message": str(e), "nonBlocking": False},
                     }
                 )
             }

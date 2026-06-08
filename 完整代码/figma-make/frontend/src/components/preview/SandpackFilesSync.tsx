@@ -62,13 +62,14 @@ export function SandpackFilesSync({ templateFiles }: SandpackFilesSyncProps) {
         hasChanges = true;
       }
 
-      if (hasApp) {
-        for (const legacyPath of ["/vite.config.ts"]) {
+      for (const path of Object.keys(sandpackRef.current.files)) {
+        if (
+          path === "/vite.config.ts" ||
+          /^\/vite\.config\.ts\.timestamp-.*\.mjs$/.test(path)
+        ) {
           try {
-            if (legacyPath in sandpackRef.current.files) {
-              sandpackRef.current.deleteFile(legacyPath, false);
-              delete syncedRef.current[legacyPath];
-            }
+            sandpackRef.current.deleteFile(path, false);
+            delete syncedRef.current[path];
           } catch {
             /* ignore */
           }

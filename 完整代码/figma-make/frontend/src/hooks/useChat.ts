@@ -253,12 +253,18 @@ export function useChat() {
 
             if (type === "error") {
               const payload = data as { message?: string };
+              const errorMessage = payload.message || "未知错误";
               const hasFiles =
                 (useSandpackStore.getState().generatedFileCount ?? 0) > 0;
+              updateThought(assistantId, "analysis", {
+                title: "需求分析",
+                description: errorMessage,
+                status: "error",
+              });
               addThought(assistantId, {
                 key: `error-${Date.now()}`,
                 title: hasFiles ? "编译检查未通过" : "发生错误",
-                description: payload.message || "未知错误",
+                description: errorMessage,
                 status: hasFiles ? "success" : "error",
               });
               if (hasFiles) {

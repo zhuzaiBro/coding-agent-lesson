@@ -545,6 +545,11 @@ if (rootEl) {
     code: patchPackageJsonForSandpack(generatedPkg ?? merged["/package.json"]?.code),
   };
   applySandpackViteJsConfig(merged);
+  for (const key of Object.keys(merged)) {
+    if (/^\/vite\.config\.ts\.timestamp-.*\.mjs$/.test(key)) {
+      delete merged[key];
+    }
+  }
 
   return merged;
 }
