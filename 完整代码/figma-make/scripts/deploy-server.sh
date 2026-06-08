@@ -25,10 +25,15 @@ uv sync
 
 if command -v systemctl >/dev/null 2>&1 && systemctl cat "${SYSTEMD_SERVICE}" &>/dev/null; then
   log "systemctl restart ${SYSTEMD_SERVICE}"
-  sudo systemctl restart "${SYSTEMD_SERVICE}"
+  if ! sudo systemctl restart "${SYSTEMD_SERVICE}"; then
+    log "WARN: restart 失败，在服务器执行一次："
+    log "  bash ${FIGMA_MAKE_ROOT}/scripts/install-systemd.sh"
+    sudo systemctl status "${SYSTEMD_SERVICE}" --no-pager || true
+    sudo systemd-analyze verify "${SYSTEMD_SERVICE}.service" 2>&1 || true
+  fi
 else
-  log "WARN: 未配置 systemd，跳过重启。手动启动："
-  log "  cd ${SERVER_DIR} && uv run uvicorn main:app --host 0.0.0.0 --port 7001"
+  log "WARN: 未配置 systemd，跳过重启。安装服务："
+  log "  bash ${FIGMA_MAKE_ROOT}/scripts/install-systemd.sh"
 fi
 
 log "done"

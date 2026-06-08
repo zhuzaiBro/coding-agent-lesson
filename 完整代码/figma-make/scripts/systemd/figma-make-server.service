@@ -1,24 +1,13 @@
-# 首次在 biz.zood.work 安装：
-#   sudo cp 完整代码/figma-make/scripts/systemd/figma-make-server.service /etc/systemd/system/
-#   sudo sed -i 's|/opt/coding-agent-lesson|你的仓库绝对路径|g' /etc/systemd/system/figma-make-server.service
-#   sudo sed -i 's|User=deploy|User=你的用户|g' /etc/systemd/system/figma-make-server.service
-#   sudo systemctl daemon-reload
-#   sudo systemctl enable --now figma-make-server
-#
-# 确保 server/.env 已配置；服务器已全局安装 uv，直接命令行调用即可
-
 [Unit]
 Description=Figma Make FastAPI Server (uvicorn :7001)
 After=network.target
 
 [Service]
 Type=simple
-User=deploy
-Group=deploy
-# WorkingDirectory 改成你服务器上含 pyproject.toml 的 server 目录
 WorkingDirectory=/opt/coding-agent-lesson/完整代码/figma-make/server
 Environment=PORT=7001
-ExecStart=uv run uvicorn main:app --host 0.0.0.0 --port 7001
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/env uv run uvicorn main:app --host 0.0.0.0 --port 7001
 Restart=on-failure
 RestartSec=5
 
