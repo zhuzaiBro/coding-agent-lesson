@@ -1,0 +1,1 @@
+这是在cursor中配置了figma mcp server，然后直接生成的项目。
