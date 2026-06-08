@@ -6,8 +6,6 @@
 #   SSH_PRIVATE_KEY        登录 biz.zood.work 的私钥（整段 PEM）
 #   SSH_USER               如 deploy
 #   SERVER_REPO_PATH       服务器上 git 仓库根目录绝对路径，如 /home/deploy/coding-agent-lesson
-#   SERVER_DIR             （可选）server 绝对路径，如 .../完整代码/figma-make/server
-#   GIT_REMOTE_URL         （推荐）服务器 git origin，如 git@github.com:zhuzaiBro/coding-agent-lesson.git
 #   VERCEL_DEPLOY_HOOK_URL Vercel 项目 → Settings → Git → Deploy Hooks 创建的 URL
 #
 # 可选 Variables：
@@ -82,12 +80,7 @@ jobs:
             cd "${{ secrets.SERVER_REPO_PATH }}"
             export REPO_ROOT="${{ secrets.SERVER_REPO_PATH }}"
             export GIT_BRANCH="${{ vars.GIT_BRANCH || 'main' }}"
-            export GIT_REMOTE_URL="${{ secrets.GIT_REMOTE_URL }}"
             export SYSTEMD_SERVICE="${{ vars.SYSTEMD_SERVICE || 'figma-make-server' }}"
-            # 可选：若自动解析仍失败，在 Secrets 里设置 SERVER_DIR 为 server 绝对路径
-            if [[ -n "${{ secrets.SERVER_DIR }}" ]]; then
-              export SERVER_DIR="${{ secrets.SERVER_DIR }}"
-            fi
             bash -l "./完整代码/figma-make/scripts/deploy-server.sh"
 
   deploy-frontend:
