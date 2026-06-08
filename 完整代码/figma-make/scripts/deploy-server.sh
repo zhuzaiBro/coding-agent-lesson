@@ -34,10 +34,6 @@ fi
 
 log "uv sync @ ${SERVER_DIR}"
 cd "${SERVER_DIR}"
-if ! command -v uv >/dev/null 2>&1; then
-  log "ERROR: 未安装 uv，请先: curl -LsSf https://astral.sh/uv/install.sh | sh"
-  exit 1
-fi
 uv sync
 
 if systemctl is-active --quiet "${SYSTEMD_SERVICE}" 2>/dev/null; then

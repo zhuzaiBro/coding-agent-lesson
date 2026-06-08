@@ -74,13 +74,14 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ vars.SSH_PORT || '22' }}
           script_stop: true
+          # 使用 login shell，与服务器交互式终端一致（uv 已在 PATH 中）
           script: |
             set -euo pipefail
             export REPO_ROOT="${{ secrets.SERVER_REPO_PATH }}"
             export GIT_BRANCH="${{ vars.GIT_BRANCH || 'main' }}"
             export SYSTEMD_SERVICE="${{ vars.SYSTEMD_SERVICE || 'figma-make-server' }}"
             export SERVER_REL_PATH="完整代码/figma-make/server"
-            bash "${REPO_ROOT}/完整代码/figma-make/scripts/deploy-server.sh"
+            bash -l "${REPO_ROOT}/完整代码/figma-make/scripts/deploy-server.sh"
 
   deploy-frontend:
     needs: detect-changes
