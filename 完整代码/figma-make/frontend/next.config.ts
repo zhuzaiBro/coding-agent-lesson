@@ -1,8 +1,15 @@
 import type { NextConfig } from "next";
 
 const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
+const PROD_API_BASE_URL = "https://coding-agent.zood.work";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  (isProd ? PROD_API_BASE_URL : "http://localhost:7001");
 
 const nextConfig: NextConfig = {
+  env: {
+    NEXT_PUBLIC_API_BASE_URL: API_BASE_URL,
+  },
   images: {
     remotePatterns: [
       {

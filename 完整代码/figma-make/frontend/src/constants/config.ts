@@ -6,10 +6,14 @@ export const PORTS = {
   // IMG_HOST: 8001, // 已废弃本地图床
 };
 
-/** 生产环境在 Vercel 配置 NEXT_PUBLIC_API_BASE_URL，如 https://coding-agent.zood.work */
+const PROD_API_BASE_URL = "https://coding-agent.zood.work";
+
+/** NEXT_PUBLIC_* 在 build 时内联；生产构建默认走线上 API */
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  `http://localhost:${PORTS.SERVER}`;
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  (process.env.NODE_ENV === "production"
+    ? PROD_API_BASE_URL
+    : `http://localhost:${PORTS.SERVER}`);
 // export const IMG_HOST_BASE_URL = `http://localhost:${PORTS.IMG_HOST}`; // 已废弃
 
 // 图床相关配置
