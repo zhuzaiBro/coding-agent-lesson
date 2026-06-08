@@ -76,15 +76,31 @@ log "uv sync @ ${SERVER_DIR}"
 cd "${SERVER_DIR}"
 uv sync
 
-if systemctl is-active --quiet "${SYSTEMD_SERVICE}" 2>/dev/null; then
-  log "systemctl restart ${SYSTEMD_SERVICE}"
-  sudo systemctl restart "${SYSTEMD_SERVICE}"
-  sudo systemctl --no-pager status "${SYSTEMD_SERVICE}" || true
-elif command -v supervisorctl >/dev/null 2>&1; then
-  log "supervisorctl restart ${SYSTEMD_SERVICE}"
-  sudo supervisorctl restart "${SYSTEMD_SERVICE}"
-else
-  log "WARN: 未找到 systemd/supervisor，请手动重启（PORT=7001 uv run uvicorn main:app --host 0.0.0.0 --port 7001）"
+restart_service() {
+  if command -v systemctl >/dev/null 2>&1 && systemctl cat "${SYSTEMD_SERVICE}" &>/dev/null; then
+    log "systemctl restart ${SYSTEMD_SERVICE}"
+    sudo systemctl restart "${SYSTEMD_SERVICE}"
+    sudo systemctl --no-pager status "${SYSTEMD_SERVICE}" || true
+    return 0
+  fi
+  if command -v supervisorctl >/dev/null 2>&1; then
+    log "supervisorctl restart ${SYSTEMD_SERVICE}"
+    sudo supervisorctl restart "${SYSTEMD_SERVICE}"
+    return 0
+  fi
+  return 1
+}
+
+if ! restart_service; then
+  UNIT_SRC="${FIGMA_MAKE_ROOT}/scripts/systemd/${SYSTEMD_SERVICE}.service"
+  log "WARN: 未配置 systemd/supervisor，服务未自动重启。"
+  log "      一次性安装（SSH 登录服务器后执行）："
+  log "        sudo cp ${UNIT_SRC} /etc/systemd/system/"
+  log "        sudo sed -i 's|/opt/coding-agent-lesson|${DEFAULT_REPO_ROOT}|g' /etc/systemd/system/${SYSTEMD_SERVICE}.service"
+  log "        sudo sed -i 's|User=deploy|User=\$(whoami)|g' /etc/systemd/system/${SYSTEMD_SERVICE}.service"
+  log "        sudo systemctl daemon-reload && sudo systemctl enable --now ${SYSTEMD_SERVICE}"
+  log "      或临时手动启动："
+  log "        cd ${SERVER_DIR} && PORT=7001 uv run uvicorn main:app --host 0.0.0.0 --port 7001"
 fi
 
 log "done"
