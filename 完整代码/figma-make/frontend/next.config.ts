@@ -3,10 +3,6 @@ import type { NextConfig } from "next";
 const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
 
 const nextConfig: NextConfig = {
-  // Vercel 构建时跳过 ESLint（本地仍可用 bun run lint）
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   images: {
     remotePatterns: [
       {

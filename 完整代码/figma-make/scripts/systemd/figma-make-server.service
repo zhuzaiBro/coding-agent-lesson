@@ -15,6 +15,7 @@ After=network.target
 Type=simple
 User=deploy
 Group=deploy
+# WorkingDirectory 改成你服务器上含 pyproject.toml 的 server 目录
 WorkingDirectory=/opt/coding-agent-lesson/完整代码/figma-make/server
 Environment=PORT=7001
 ExecStart=uv run uvicorn main:app --host 0.0.0.0 --port 7001
