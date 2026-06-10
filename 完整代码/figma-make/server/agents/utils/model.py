@@ -1,11 +1,16 @@
 """
-Multi-model architecture:
-- DeepSeek: Main model option 1 (function calling support)
-- GLM: Main model option 2 (ZhipuAI, function calling support)
-- Qwen: Main model option 3 (DashScope OpenAI-compatible API)
-- Qwen-VL: Vision model (image analysis only)
+多模型统一入口（LangChain ChatOpenAI 兼容接口）。
 
-Switch main model via MAIN_MODEL_PROVIDER env var: deepseek | glm | qwen
+主模型（代码生成 / 结构化输出）：
+- DeepSeek（默认）
+- 智谱 GLM
+- 通义 Qwen 文本模型
+
+视觉模型（仅图片分析）：
+- Qwen-VL
+
+通过环境变量 MAIN_MODEL_PROVIDER=deepseek|glm|qwen 切换主模型。
+各模型实例单例缓存，避免重复创建连接。
 """
 import os
 from typing import Optional, Type

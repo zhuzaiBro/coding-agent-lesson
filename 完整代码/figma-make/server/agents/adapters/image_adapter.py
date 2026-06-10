@@ -1,5 +1,8 @@
 """
-Image request route adapter.
+图片路由适配器（优先级 80）。
+
+匹配条件：最后一条消息带 image 类型附件。
+仍走 traditional 全流程，由 analysisNode / 视觉模型理解图片意图。
 """
 from agents.adapters.route_helpers import has_image_attachment
 

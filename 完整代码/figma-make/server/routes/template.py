@@ -1,3 +1,9 @@
+"""
+Sandpack 默认 React 模板接口。
+
+读取 templates/react-ts/ 目录，返回 {"/App.tsx": {"code": "..."}} 格式，
+供前端初始化预览区（后续生成文件会与之合并）。
+"""
 import os
 from pathlib import Path
 from fastapi import APIRouter

@@ -1,4 +1,9 @@
-"""step16: File assembly node (no LLM, pure Python)."""
+"""
+Step 16：文件组装节点（纯 Python，不调用 LLM）。
+
+将各阶段产物（componentsCode、pagesCode、styles、app 等）合并为
+Sandpack 所需的 files 字典，并扫描 import 生成 package.json。
+"""
 import json
 from pathlib import Path
 

@@ -1,4 +1,9 @@
-"""Routing helpers after compileCheckNode."""
+"""
+compileCheckNode 之后的路由。
+
+编译通过 → END；失败且未超重试次数 → debugFixNode（LLM 修代码）→ 再次 compileCheck。
+受 ENABLE_COMPILE_DEBUG_FIX 与 FRONTEND_COMPILE_FIX_MAX_RETRIES 控制。
+"""
 import os
 
 from langgraph.graph import END
@@ -21,7 +26,7 @@ def _debug_fix_enabled() -> bool:
 
 
 def route_after_compile_check(state: dict) -> str:
-    """On build failure, loop into debugFixNode until retries exhausted."""
+    """根据 files.stats 中的编译结果决定继续修还是结束。"""
     assembled = state.get("files") or {}
     stats = assembled.get("stats") if isinstance(assembled, dict) else {}
     if not isinstance(stats, dict):

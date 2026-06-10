@@ -1,7 +1,8 @@
 """
-Page generation subgraph.
+页面并行生成子图（fan-out，与 component_graph 对称）。
 
-Uses LangGraph Send (fan-out) to generate all pages in parallel.
+structureNode 规划出的 /pages/*.tsx 经 Send 分发到 generatePage 节点并发执行，
+生成结果合并为 pagesCode 列表，供 layoutNode / assembleNode 使用。
 """
 import json
 import operator

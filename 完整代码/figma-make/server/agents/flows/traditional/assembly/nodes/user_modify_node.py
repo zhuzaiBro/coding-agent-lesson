@@ -1,4 +1,9 @@
-"""Apply user-requested changes to an existing generated app."""
+"""
+Modification 流程核心：按用户描述对 existingFiles 打补丁。
+
+选取相关上下文文件 → LLM 输出 path/content 补丁 → apply_patches_to_file_map 合并。
+不跑完整 19 节点，适合 Sandpack 上的增量编辑。
+"""
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from agents.flows.traditional.assembly.prompts.user_modify_prompts import (

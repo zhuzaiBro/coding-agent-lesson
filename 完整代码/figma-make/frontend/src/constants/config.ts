@@ -8,7 +8,11 @@ export const PORTS = {
 
 const PROD_API_BASE_URL = "https://coding-agent.zood.work";
 
-/** NEXT_PUBLIC_* 在 build 时内联；生产构建默认走线上 API */
+/**
+ * API 根地址。
+ * - 在 frontend/.env.local 设置 NEXT_PUBLIC_API_BASE_URL（勿放在 src/）
+ * - 未设置时：dev → localhost:7001，production build → coding-agent.zood.work
+ */
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   (process.env.NODE_ENV === "production"

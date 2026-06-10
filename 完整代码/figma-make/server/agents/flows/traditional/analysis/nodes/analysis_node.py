@@ -1,4 +1,10 @@
-"""step0: Behavior analysis node."""
+"""
+Step 0：需求分析节点（流水线入口）。
+
+LLM 结构化输出 AnalysisResult：意图类型（CREATE/QA/CHIT_CHAT 等）、
+是否需要联库 needsDatabase、应用类型描述等。
+结果驱动 analysis_router 三路分流。
+"""
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from agents.flows.traditional.analysis.prompts.analysis_prompts import ANALYSIS_SYSTEM_PROMPT

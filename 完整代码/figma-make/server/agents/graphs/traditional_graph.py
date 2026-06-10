@@ -72,7 +72,7 @@ checkpointer = MemorySaver()
 
 
 class TraditionalGraphState(TypedDict, total=False):
-    """Traditional flow graph state."""
+    """传统流程 LangGraph 状态：各节点读写约定字段，由 MemorySaver 按 thread_id 持久化。"""
     messages: List[Any]
     mockConfig: Optional[Dict[str, Any]]
     textPrompt: Optional[str]
@@ -105,12 +105,11 @@ class TraditionalGraphState(TypedDict, total=False):
     files: Optional[Dict[str, Any]]
 
 
-# --- Bridge Nodes ---
-# Bridge nodes extract state for subgraph input, invoke the subgraph,
-# and return subgraph output for the main graph to merge.
+# --- 子图桥接节点 ---
+# 主图与子图状态字段不完全一致：bridge 负责抽取输入、调用子图、把输出写回主图 state。
 
 async def run_supabase_graph(state: dict) -> dict:
-    """Bridge node: invoke Supabase MCP subgraph (foundation phase)."""
+    """桥接 Supabase 子图：拉取 projectUrl / schema / TS types，写入 state.supabase。"""
     if not needs_database_connection(state):
         print("[MainGraph] Supabase subgraph skipped (LLM/user did not require database)")
         return {}
@@ -133,7 +132,7 @@ async def run_supabase_graph(state: dict) -> dict:
 
 
 async def run_component_graph(state: dict) -> dict:
-    """Bridge node: invoke component subgraph."""
+    """桥接组件子图：从 structure.files 筛出 /components/*.tsx 并 fan-out 并行生成。"""
     # Mock mode check
     mock_result = await try_execute_mock(
         state,
@@ -172,7 +171,7 @@ async def run_component_graph(state: dict) -> dict:
 
 
 async def run_page_graph(state: dict) -> dict:
-    """Bridge node: invoke page subgraph."""
+    """桥接页面子图：从 structure.files 筛出 /pages/*.tsx，可引用已生成的 componentsCode。"""
     # Mock mode check
     mock_result = await try_execute_mock(
         state,
@@ -212,7 +211,7 @@ async def run_page_graph(state: dict) -> dict:
 
 
 def build_traditional_agent():
-    """Build and compile the traditional flow agent."""
+    """编译传统 19 节点图；analysis 后三路分支，compileCheck 失败可循环 debugFix。"""
     graph = StateGraph(TraditionalGraphState)
 
     # Step 0: Analysis + inquiry branch
@@ -260,15 +259,15 @@ def build_traditional_agent():
     # Step 19: LLM debug fix when compile fails (loops back to compile check)
     graph.add_node("debugFixNode", debug_fix_node)
 
-    # Orchestration flow
+    # 编排：先分析意图，再决定生成 / 联库问答 / 闲聊
     graph.add_edge(START, "analysisNode")
     graph.add_conditional_edges(
         "analysisNode",
         route_after_analysis,
         {
-            "generation": "intentNode",
-            "database_inquiry": "supabaseSubgraph",
-            "conversational": "chatReplyNode",
+            "generation": "intentNode",           # 完整生成
+            "database_inquiry": "supabaseSubgraph",  # QA+联库：先拉 schema 再 SQL
+            "conversational": "chatReplyNode",    # 纯对话，直接结束
         },
     )
     graph.add_edge("supabaseSubgraph", "inquiryNode")

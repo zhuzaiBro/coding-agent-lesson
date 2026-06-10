@@ -1,4 +1,9 @@
-"""QA + needsDatabase: multi-round LLM + execute_sql investigation."""
+"""
+数据库问询节点（QA + 需要联库时分支）。
+
+多轮循环（最多 6 轮）：LLM 生成 SQL → Supabase MCP execute_sql → 结果回填 → 直至产出最终回答。
+仅允许只读 SQL（is_read_only_sql 校验），结果写入 state.inquiry 供 chatReplyNode 展示。
+"""
 import json
 from typing import Any, Dict, List
 

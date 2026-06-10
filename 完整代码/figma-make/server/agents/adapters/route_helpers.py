@@ -1,5 +1,10 @@
 """
-Route adapter shared helper functions.
+路由适配器共用工具。
+
+核心判定：
+- has_image_attachment：是否带参考图
+- has_text_prompt：是否为有效文本需求（排除「仅粘贴 URL」）
+- is_modification_request：是否应在已有项目上迭代修改
 """
 import re
 from typing import Any, List, Optional
@@ -67,9 +72,12 @@ def _has_existing_project_files(context: dict) -> bool:
 
 def is_modification_request(messages: List[Any], *, context: dict | None = None) -> bool:
     """
-    Modification route when:
-    - User has an existing project (files in request) and is not asking to rebuild from scratch, or
-    - Message contains explicit edit keywords.
+    判定是否走 modification 轻量图。
+
+    规则：
+    1. 无 existingFiles → 一定不是修改
+    2. 有文件且用户未说「从零/重做」→ 默认视为修改
+    3. 有文件且含修改类关键词 → 修改
     """
     content = get_last_text(messages).lower()
     ctx = context or {}

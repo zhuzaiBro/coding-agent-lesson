@@ -1,10 +1,9 @@
 """
-Supabase Remote MCP Client.
+Supabase Remote MCP 客户端（JSON-RPC over HTTP）。
 
-Connects to https://mcp.supabase.com/mcp (or local CLI http://localhost:54321/mcp)
-with Personal Access Token authentication.
-
-Docs: https://supabase.com/docs/guides/ai-tools/mcp
+认证：浏览器 OAuth 会话 token 或环境变量 SUPABASE_ACCESS_TOKEN。
+常用工具：list_tables、execute_sql、apply_migration、get_project_url 等。
+文档：https://supabase.com/docs/guides/ai-tools/mcp
 """
 import json
 import os

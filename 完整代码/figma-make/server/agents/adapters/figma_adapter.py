@@ -1,5 +1,8 @@
 """
-Figma request route adapter.
+Figma 路由适配器（优先级 100，最高）。
+
+匹配条件：消息文本中含 Figma 设计稿 URL。
+输出 flow="figma"，将 figmaUrl 传入 figma_graph 入口。
 """
 from agents.shared.utils.figma_url import extract_figma_url
 

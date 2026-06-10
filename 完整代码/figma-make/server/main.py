@@ -1,3 +1,12 @@
+"""
+FastAPI 应用入口。
+
+职责：
+1. 加载 .env 环境变量
+2. OAuth 中间件：从 Cookie 恢复 Supabase / Figma 会话，注入当前请求的 ContextVar
+3. 挂载业务路由（chat SSE、模板、上传、MCP 代理）
+4. 全局 CORS（允许前端跨域携带 Cookie）
+"""
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -23,6 +32,7 @@ app = FastAPI(title="Duyi Figma Make Server")
 
 @app.middleware("http")
 async def mcp_oauth_context_middleware(request: Request, call_next):
+    """每个请求开始时解析 OAuth Cookie，供 MCP 客户端读取 access token。"""
     supabase_sid = request.cookies.get(OAUTH_COOKIE)
     set_request_oauth_context(
         supabase_sid,

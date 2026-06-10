@@ -1,4 +1,9 @@
-"""Detect Supabase / live database need and format MCP context for LLM prompts."""
+"""
+Supabase 联库判定与提示词拼装。
+
+needs_database_connection：决定是否调用 supabaseSubgraph、是否走 database_inquiry 分支。
+format_supabase_prompt_block：将 MCP 拉取的 schema/types 格式化为 LLM 系统提示片段。
+"""
 from typing import Any, Dict, Optional
 
 from config.supabase import is_supabase_configured
@@ -6,14 +11,8 @@ from config.supabase import is_supabase_configured
 
 def needs_database_connection(state: dict) -> bool:
     """
-    Whether the pipeline should connect Supabase MCP.
-
-    Priority (high → low):
-      1. Supabase not configured → False
-      2. User explicit opt-out (useSupabase=False) → False
-      3. User explicit opt-in (useSupabase=True) → True
-      4. LLM analysis.needsDatabase → True/False
-      5. Fallback state.needsDatabase → True/False
+    本请求是否需要连接 Supabase MCP（优先级从高到低）：
+    未配置 → 用户显式关闭 → 用户显式开启 → LLM 判断 → state 兜底。
     """
     if not is_supabase_configured():
         return False

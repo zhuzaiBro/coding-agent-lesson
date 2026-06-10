@@ -1,5 +1,8 @@
 """
-Text prompt route adapter.
+纯文本路由适配器（优先级 70）。
+
+匹配条件：最后一条消息去掉 URL 后仍有实质文本。
+输出 flow="traditional"，进入完整生成流水线。
 """
 from agents.adapters.route_helpers import has_text_prompt
 

@@ -1,4 +1,9 @@
-"""Compile-debug fix node: LLM repairs files after failed compile check."""
+"""
+编译失败自动修复节点（与 compileCheckNode 循环）。
+
+读取 npm run build 报错与相关源文件，LLM 输出 FilePatch 列表并写回 files，
+直至通过或达到 FRONTEND_COMPILE_FIX_MAX_RETRIES。
+"""
 import os
 import re
 from typing import Dict, List, Optional, Set

@@ -1,4 +1,9 @@
-"""Supabase MCP connection settings."""
+"""
+Supabase MCP 连接配置。
+
+认证优先级：当前请求 OAuth token（中间件注入）> 环境变量 PAT。
+build_mcp_url 根据 project_ref、read_only、features 拼装 MCP 端点 URL。
+"""
 from contextvars import ContextVar
 import os
 from typing import Optional

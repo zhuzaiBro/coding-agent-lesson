@@ -1,3 +1,9 @@
+"""
+用户参考图上传 API。
+
+接收 multipart 图片 → 校验类型与大小 → 上传阿里云 OSS → 返回公网 URL。
+聊天附件与 Figma 流程中的图片替换均依赖此接口。
+"""
 import os
 import uuid
 from datetime import datetime

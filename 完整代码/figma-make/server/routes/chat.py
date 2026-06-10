@@ -1,3 +1,12 @@
+"""
+核心聊天接口（SSE 流式）。
+
+请求链路：
+1. 解析 mockConfig / projectId / existingFiles / useSupabase
+2. resolve_route_adapter 分流 → traditional | figma | modification
+3. agent.astream(stream_mode="updates") 逐节点推送 SSE
+4. NODE_HANDLERS 将 LangGraph 节点名映射为前端事件类型（analysis、files 等）
+"""
 import json
 import os
 import random

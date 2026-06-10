@@ -1,14 +1,12 @@
 """
-Main graph (routing dispatcher).
+主图工厂（按模式返回已编译的 LangGraph）。
 
-Returns the appropriate generation graph based on mode:
-- "figma"         → Figma direct graph (figma_graph.py)
-- "traditional"   → Traditional graph (traditional_graph.py)
-- "modification"  → User edit graph (modification_graph.py)
+routes/chat.py 在路由适配器判定 flow 后，选择对应 Agent 执行：
+- "traditional"   → traditional_graph.py（19 节点从零生成）
+- "figma"         → figma_graph.py（MCP 拉设计稿再拆解）
+- "modification"  → modification_graph.py（在已有 Sandpack 文件上打补丁）
 
-Responsibilities:
-1. Provide build_agent(mode) factory function
-2. Re-export shared URL detection utility for backwards compatibility
+模块在 import 时不会执行生成，仅提供 build_agent(mode) 工厂函数。
 """
 from typing import Literal
 
@@ -21,17 +19,7 @@ __all__ = ["build_agent", "extract_figma_url"]
 
 
 def build_agent(mode: Literal["traditional", "figma", "modification"] = "traditional"):
-    """
-    Build an Agent.
-
-    Args:
-        mode: Specifies the mode.
-            - "traditional": Prompt-driven multi-step code generation.
-            - "figma": Figma MCP direct connect code split flow.
-
-    Returns:
-        A compiled LangGraph graph ready to invoke.
-    """
+    """编译并返回指定模式的 LangGraph（带 MemorySaver 的已在各 build_*_agent 内配置）。"""
     if mode == "figma":
         print("[MainGraph] Building Figma direct graph")
         return build_figma_agent()

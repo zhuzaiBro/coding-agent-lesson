@@ -1,4 +1,9 @@
-"""step5: Project structure definition node."""
+"""
+Step 5：项目结构规划节点。
+
+输出 structure.files 文件清单（含 /components、/pages 路径），
+后续 componentSubgraph / pageSubgraph 据此 fan-out 并行生成。
+"""
 import json
 
 from langchain_core.messages import HumanMessage, SystemMessage

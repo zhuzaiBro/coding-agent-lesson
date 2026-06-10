@@ -3,6 +3,8 @@ from contextvars import ContextVar
 import os
 from typing import Literal, Optional
 
+from config.app_urls import get_figma_oauth_redirect_uri, get_frontend_origin as get_app_frontend_origin
+
 FigmaMcpMode = Literal["desktop", "remote"]
 
 _request_figma_access_token: ContextVar[Optional[str]] = ContextVar(
@@ -32,15 +34,11 @@ def get_mcp_url() -> str:
 
 
 def get_frontend_origin() -> str:
-    return os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+    return get_app_frontend_origin()
 
 
 def get_oauth_redirect_uri() -> str:
-    explicit = os.getenv("FIGMA_OAUTH_REDIRECT_URI", "").strip()
-    if explicit:
-        return explicit
-    port = os.getenv("PORT", "7001")
-    return f"http://localhost:{port}/api/figma/oauth/callback"
+    return get_figma_oauth_redirect_uri()
 
 
 def get_access_token() -> str:

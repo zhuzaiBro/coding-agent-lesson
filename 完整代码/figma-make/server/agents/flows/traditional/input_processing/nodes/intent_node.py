@@ -1,4 +1,8 @@
-"""step1: Intent analysis node."""
+"""
+Step 1：意图细化节点（仅 generation 分支）。
+
+在 analysis 之后进一步提炼用户目标、约束与功能范围，输出 intent 供后续 capability/ui 节点使用。
+"""
 import json
 
 from langchain_core.messages import HumanMessage, SystemMessage

@@ -1,5 +1,8 @@
 """
-Modification request route adapter.
+修改路由适配器（优先级 90）。
+
+匹配条件：请求体携带 existingFiles（Sandpack 当前文件），且用户不是要「从零重做」。
+输出 flow="modification"，走轻量 userModifyNode 而非完整 19 节点。
 """
 from agents.adapters.route_helpers import is_modification_request
 

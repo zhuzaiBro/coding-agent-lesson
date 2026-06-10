@@ -1,8 +1,11 @@
 """
-Figma MCP Client.
+Figma MCP 客户端（HTTP JSON-RPC）。
 
-Communicates with local Figma Desktop MCP Server via HTTP JSON-RPC.
-Default endpoint: http://127.0.0.1:3845/mcp
+模式（FIGMA_MCP_MODE）：
+- remote：云端 https://mcp.figma.com/mcp，需 OAuth token
+- desktop：本机 Figma Desktop 默认 http://127.0.0.1:3845/mcp
+
+核心能力：get_design_context(figma_url) 拉取整页 TSX 代码供 figma_graph 拆解。
 """
 import json
 import os

@@ -1,4 +1,10 @@
-"""Compile-check generated frontend files with a temporary Vite project."""
+"""
+生成代码的真实编译校验（compileCheckNode 调用）。
+
+在临时目录写入 Sandpack 文件 → npm install → npm run build，
+失败时把 stderr 写入 files.stats.compileError，供 debugFixNode 修复。
+与浏览器 Sandpack 环境近似，但使用本机 Node 而非 Nodebox WASM。
+"""
 import asyncio
 import json
 import os

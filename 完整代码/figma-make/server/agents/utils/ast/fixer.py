@@ -1,8 +1,8 @@
 """
-AST post-processor for generated code.
+生成代码 AST 后处理（postProcessNode 调用）。
 
-Provides regex-based code fixing for common LLM generation issues.
-Python equivalent of the TypeScript AST fixer (uses regex instead of Babel AST).
+用正则修复 LLM 常见输出问题：对象直接渲染、可选链缺失、非法 JSX 等。
+未引入完整 Babel 解析，兼顾 Sandpack 场景下的速度与可维护性。
 """
 import re
 import time
