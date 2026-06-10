@@ -34,7 +34,7 @@ ROOT_CONFIG_FILES = {
 
 
 class FrontendCompileError(RuntimeError):
-    """Raised when generated frontend files fail to install or build."""
+    """生成的前端文件安装或构建失败时抛出。"""
 
 
 def _normalize_sandpack_path(path: str) -> str:
@@ -45,7 +45,7 @@ def _normalize_sandpack_path(path: str) -> str:
 
 
 def _source_output_path(path: str) -> str:
-    """Map Sandpack-style paths to a Vite project filesystem path."""
+    """将 Sandpack 风格路径映射为 Vite 项目文件系统路径。"""
     normalized = _normalize_sandpack_path(path)
     if normalized.startswith("/src/"):
         return normalized.lstrip("/")
@@ -297,7 +297,7 @@ def compile_frontend_files_sync(
     build_timeout: Optional[int] = None,
     keep_temp: bool = False,
 ) -> Dict[str, Any]:
-    """Install dependencies and run `npm run build` for generated files."""
+    """为生成文件安装依赖并执行 `npm run build`。"""
     file_map = _get_file_map(assembled_files)
     if not file_map:
         raise FrontendCompileError("No generated frontend files were found to compile.")
@@ -333,11 +333,11 @@ def compile_frontend_files_sync(
         }
     finally:
         if keep_temp:
-            print(f"[FrontendCompile] Kept temp project: {project_dir}")
+            print(f"[FrontendCompile] 保留临时项目目录: {project_dir}")
         else:
             shutil.rmtree(project_dir, ignore_errors=True)
 
 
 async def compile_frontend_files(assembled_files: Any) -> Dict[str, Any]:
-    """Async wrapper for graph nodes."""
+    """供图节点调用的异步封装。"""
     return await asyncio.to_thread(compile_frontend_files_sync, assembled_files)

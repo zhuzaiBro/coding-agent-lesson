@@ -18,23 +18,23 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
-# ===================== Version map =====================
+# ===================== 版本映射表 =====================
 
 VERSION_MAP: Dict[str, str] = {
-    # ===== React ecosystem =====
+    # ===== React 生态 =====
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.28.0",
     "react-hook-form": "^7.55.0",
 
-    # ===== State management =====
+    # ===== 状态管理 =====
     "zustand": "^4.5.0",
     "jotai": "^2.6.0",
     "@reduxjs/toolkit": "^2.0.0",
     "react-redux": "^9.1.0",
     "recoil": "^0.7.0",
 
-    # ===== UI component libraries =====
+    # ===== UI 组件库 =====
     "lucide-react": "^0.487.0",
     "react-icons": "^5.3.0",
     "@heroicons/react": "^2.1.0",
@@ -69,38 +69,38 @@ VERSION_MAP: Dict[str, str] = {
     "tailwindcss-animate": "^1.0.7",
     "cmdk": "^1.0.0",
 
-    # ===== Charts =====
+    # ===== 图表 =====
     "recharts": "^2.15.2",
     "chart.js": "^4.4.0",
     "react-chartjs-2": "^5.2.0",
     "d3": "^7.9.0",
     "nivo": "^0.87.0",
 
-    # ===== Date/time =====
+    # ===== 日期时间 =====
     "date-fns": "^3.6.0",
     "dayjs": "^1.11.0",
     "react-day-picker": "^8.10.1",
     "moment": "^2.30.0",
 
-    # ===== Animation =====
+    # ===== 动画 =====
     "framer-motion": "^11.0.0",
     "react-spring": "^9.7.0",
     "react-transition-group": "^4.4.0",
     "auto-animate": "^0.8.0",
     "@formkit/auto-animate": "^0.8.0",
 
-    # ===== Form/validation =====
+    # ===== 表单/校验 =====
     "zod": "^3.23.0",
     "yup": "^1.4.0",
     "@hookform/resolvers": "^3.9.0",
 
-    # ===== HTTP requests =====
+    # ===== HTTP 请求 =====
     "axios": "^1.7.0",
     "swr": "^2.2.0",
     "@tanstack/react-query": "^5.50.0",
     "ky": "^1.4.0",
 
-    # ===== Rich text/Markdown =====
+    # ===== 富文本/Markdown =====
     "react-markdown": "^9.0.0",
     "react-quill": "^2.0.0",
     "remark-gfm": "^4.0.0",
@@ -109,29 +109,29 @@ VERSION_MAP: Dict[str, str] = {
     "highlight.js": "^11.10.0",
     "prismjs": "^1.29.0",
 
-    # ===== Table/virtual list =====
+    # ===== 表格/虚拟列表 =====
     "@tanstack/react-table": "^8.20.0",
     "react-virtualized": "^9.22.0",
     "react-virtuoso": "^4.7.0",
     "@tanstack/react-virtual": "^3.8.0",
 
-    # ===== Drag and drop =====
+    # ===== 拖拽 =====
     "@dnd-kit/core": "^6.1.0",
     "@dnd-kit/sortable": "^8.0.0",
     "react-beautiful-dnd": "^13.1.0",
     "react-dnd": "^16.0.0",
 
-    # ===== Carousel/slider =====
+    # ===== 轮播/滑块 =====
     "embla-carousel-react": "^8.6.0",
     "swiper": "^11.1.0",
 
-    # ===== Toast/notifications =====
+    # ===== Toast/通知 =====
     "sonner": "^2.0.3",
     "react-hot-toast": "^2.4.0",
     "react-toastify": "^10.0.0",
     "sweetalert2": "^11.12.0",
 
-    # ===== Other common =====
+    # ===== 其他常用 =====
     "input-otp": "^1.4.2",
     "next-themes": "^0.4.6",
     "react-resizable-panels": "^2.1.7",
@@ -151,7 +151,7 @@ VERSION_MAP: Dict[str, str] = {
     "react-error-boundary": "^4.0.0",
 }
 
-# Node.js built-in modules to exclude
+# 需排除的 Node.js 内置模块
 _BUILTINS = frozenset([
     "fs", "path", "os", "url", "util", "http", "https", "stream",
     "crypto", "events", "buffer", "process", "child_process", "cluster",
@@ -160,19 +160,19 @@ _BUILTINS = frozenset([
 
 
 def _extract_package_name(module_path: str) -> Optional[str]:
-    """Extract package name from an import path."""
-    # Exclude relative paths
+    """从 import 路径提取包名。"""
+    # 排除相对路径
     if module_path.startswith(("./", "../", "@/", "~/")):
         return None
 
-    # Scoped packages: @scope/package
+    # 作用域包：@scope/package
     if module_path.startswith("@"):
         parts = module_path.split("/")
         if len(parts) >= 2:
             return f"{parts[0]}/{parts[1]}"
         return None
 
-    # Regular packages: package/sub -> package
+    # 普通包：package/sub -> package
     pkg_name = module_path.split("/")[0]
     if pkg_name in _BUILTINS:
         return None
@@ -182,9 +182,9 @@ def _extract_package_name(module_path: str) -> Optional[str]:
 
 def extract_imports(code: str) -> Set[str]:
     """
-    Extract all third-party package names from code.
+    从代码中提取所有第三方包名。
 
-    Handles:
+    支持：
     - import xxx from 'package'
     - import { xxx } from 'package'
     - import 'package'
@@ -193,7 +193,7 @@ def extract_imports(code: str) -> Set[str]:
     """
     packages: Set[str] = set()
 
-    # Match ES import statements
+    # 匹配 ES import 语句
     import_regex = r"""(?:import\s+(?:[\s\S]*?\s+from\s+)?['"]([^'"]+)['"]|import\s*\(\s*['"]([^'"]+)['"]\s*\))"""
     for m in re.finditer(import_regex, code):
         module_path = m.group(1) or m.group(2)
@@ -202,7 +202,7 @@ def extract_imports(code: str) -> Set[str]:
             if pkg:
                 packages.add(pkg)
 
-    # Match require statements
+    # 匹配 require 语句
     require_regex = r"""require\s*\(\s*['"]([^'"]+)['"]\s*\)"""
     for m in re.finditer(require_regex, code):
         module_path = m.group(1)
@@ -215,7 +215,7 @@ def extract_imports(code: str) -> Set[str]:
 
 
 def scan_dependencies(files: List[Dict[str, Any]]) -> Dict[str, str]:
-    """Scan all files and extract third-party dependencies."""
+    """扫描所有文件并提取第三方依赖。"""
     all_packages: Set[str] = set()
 
     for file in files:
@@ -230,7 +230,7 @@ def scan_dependencies(files: List[Dict[str, Any]]) -> Dict[str, str]:
         version = VERSION_MAP.get(pkg, "latest")
         deps[pkg] = version
         if pkg not in VERSION_MAP:
-            print(f'[DependencyBuilder] Unknown package "{pkg}" → using "latest"')
+            print(f'[DependencyBuilder] 未知包 "{pkg}" → 使用 "latest"')
 
     return deps
 
@@ -240,9 +240,9 @@ def build_package_json(
     template_package_json: Any,
 ) -> Dict[str, Any]:
     """
-    Build complete package.json by merging scanned deps with template.
+    合并扫描依赖与模板，构建完整 package.json。
 
-    Merge strategy: template versions take priority (prevent downgrading core libs).
+    合并策略：模板版本优先（避免核心库被降级）。
     """
     template_deps = template_package_json.get("dependencies", {})
 
@@ -253,7 +253,7 @@ def build_package_json(
         if pkg not in merged_dependencies:
             merged_dependencies[pkg] = version
             added_deps[pkg] = version
-            print(f"[DependencyBuilder] Adding: {pkg}@{version}")
+            print(f"[DependencyBuilder] 添加依赖: {pkg}@{version}")
 
     return {
         "packageJson": {
@@ -261,20 +261,20 @@ def build_package_json(
             "dependencies": merged_dependencies,
         },
         "dependencies": added_deps,
-        "reason": "Auto-analyzed from code import statements, programmatically inferred dependencies",
+        "reason": "从代码 import 语句自动分析，程序化推断依赖",
     }
 
 
 async def read_template_package_json() -> Any:
-    """Read template package.json."""
+    """读取模板 package.json。"""
     template_path = Path.cwd() / "templates" / "react-ts" / "package.json"
 
     try:
         content = template_path.read_text(encoding="utf-8")
         return json.loads(content)
     except Exception as e:
-        print(f"[DependencyBuilder] Failed to read template: {template_path}: {e}")
-        # Fallback: return minimal template
+        print(f"[DependencyBuilder] 读取模板失败: {template_path}: {e}")
+        # 兜底：返回最小模板
         return {
             "name": "react-project",
             "private": True,

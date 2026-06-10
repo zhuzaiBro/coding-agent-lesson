@@ -1,7 +1,6 @@
-"""Local preview fallbacks for common frontend packages.
+"""常见前端包的本地预览兜底。
 
-These keep Sandpack previews usable in networks where the iframe cannot fetch
-npm package files from jsDelivr/unpkg.
+当 Sandpack iframe 无法从 jsDelivr/unpkg 拉取 npm 包时，注入本地替代实现以保持预览可用。
 """
 import re
 from typing import Dict, Set
@@ -322,7 +321,7 @@ export const toast = Object.assign(
 
 
 def add_local_package_fallbacks(files: Dict[str, str]) -> Dict[str, int]:
-    """Rewrite common package imports to local files and add those files."""
+    """将常见包 import 重写为本地路径，并注入对应兜底文件。"""
     packages = _rewrite_imports(files)
     added = 0
 

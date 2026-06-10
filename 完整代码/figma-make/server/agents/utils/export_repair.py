@@ -1,4 +1,4 @@
-"""Repair hook imports against actual service exports (deterministic, no LLM)."""
+"""根据 service 实际导出修复 hook import（确定性，无 LLM）。"""
 import re
 from typing import Dict, List, Optional, Set, Tuple
 
@@ -48,7 +48,7 @@ def _find_service_file(files: Dict[str, str], stem: str) -> Tuple[str, str]:
 
 
 def _parse_export_brace_names(block: str) -> Set[str]:
-    """Names exposed by `export { a, b as c }` (public names are the RHS of `as`)."""
+    """解析 `export { a, b as c }` 暴露的名称（`as` 右侧为对外名称）。"""
     names: Set[str] = set()
     for part in (block or "").split(","):
         segment = part.strip()
@@ -73,7 +73,7 @@ def _parse_exports(content: str) -> Set[str]:
 
 
 def parse_named_exports(content: str) -> List[str]:
-    """Sorted public named export symbols (functions, consts, re-exports)."""
+    """排序后的公开 named export 符号（函数、const、re-export）。"""
     return sorted(_parse_exports(content or ""))
 
 
@@ -85,7 +85,7 @@ def _guess_alias(missing: str, exports: Set[str]) -> str | None:
         if name.lower() == lower_missing:
             return name
 
-    # getTasks → getAllTasks / listTasks / fetchTasks
+    # getTasks → getAllTasks / listTasks / fetchTasks 等别名猜测
     if lower_missing.startswith("get"):
         suffix = lower_missing[3:]
         candidates = [
@@ -125,7 +125,7 @@ def _guess_alias(missing: str, exports: Set[str]) -> str | None:
 
 
 def _stub_export_function(name: str, exports: Set[str]) -> Optional[str]:
-    """Synthesize a minimal export when hooks import a missing service API."""
+    """当 hook import 了缺失的 service API 时，合成最小 export 桩。"""
     lower = name.lower()
     update_fn = next((e for e in exports if e.lower().startswith("update")), None)
     list_fn = next(
@@ -161,7 +161,7 @@ def _append_reexports(service_content: str, aliases: List[Tuple[str, str]]) -> s
     if not aliases:
         return service_content
     existing = _parse_exports(service_content)
-    lines = [service_content.rstrip(), "", "// Auto-repaired re-exports for hook imports"]
+    lines = [service_content.rstrip(), "", "// 自动修复：为 hook import 补充 re-export"]
     for hook_name, service_name in aliases:
         if hook_name == service_name or hook_name in existing:
             continue
@@ -178,7 +178,7 @@ def _append_reexports(service_content: str, aliases: List[Tuple[str, str]]) -> s
 def _append_stub_exports(service_content: str, stubs: List[str]) -> str:
     if not stubs:
         return service_content
-    lines = [service_content.rstrip(), "", "// Auto-repaired stub exports for hook imports"]
+    lines = [service_content.rstrip(), "", "// 自动修复：为 hook import 补充桩 export"]
     lines.extend(stubs)
     lines.append("")
     return "\n".join(lines)
@@ -200,7 +200,7 @@ NAMED_EXPORT_SYMBOL_RE = re.compile(
 
 
 def _resolve_module_path(files: Dict[str, str], import_spec: str) -> str:
-    """../components/Foo -> /components/Foo.tsx"""
+    """将 ../components/Foo 解析为 /components/Foo.tsx。"""
     spec = import_spec.replace("\\", "/")
     if spec.startswith("../"):
         spec = spec[3:]
@@ -234,7 +234,7 @@ def _append_default_export(content: str, symbol: str) -> str:
 
 
 def repair_component_default_exports(files: Dict[str, str]) -> Dict[str, int]:
-    """Add missing `export default` when importers use default import."""
+    """当 import 方使用 default import 时，为目标文件补充缺失的 `export default`。"""
     patched = 0
     default_exports_added = 0
 
@@ -266,7 +266,7 @@ def repair_component_default_exports(files: Dict[str, str]) -> Dict[str, int]:
 
 
 def repair_named_component_imports(files: Dict[str, str]) -> Dict[str, int]:
-    """Convert `import { Foo }` to `import Foo` when target only has default export."""
+    """当目标仅有 default export 时，将 `import { Foo }` 改为 `import Foo`。"""
     imports_fixed = 0
 
     for path, code in list(files.items()):
@@ -293,8 +293,8 @@ def repair_named_component_imports(files: Dict[str, str]) -> Dict[str, int]:
 
 def repair_hook_service_class_imports(files: Dict[str, str]) -> Dict[str, int]:
     """
-    Hooks often wrongly import `{ TodoItemService }` (filename) while services export functions.
-    Rewrite to import actual named exports and drop `ServiceSymbol.` prefixes.
+    Hook 常错误 import `{ TodoItemService }`（文件名），而 service 实际导出的是函数。
+    重写为 import 真实 named export，并去掉 `ServiceSymbol.` 前缀。
     """
     hooks_fixed = 0
 
@@ -350,6 +350,7 @@ def repair_hook_service_class_imports(files: Dict[str, str]) -> Dict[str, int]:
 
 
 def repair_all_exports(files: Dict[str, str]) -> Dict[str, int]:
+    """依次执行全部 export/import 修复并汇总统计。"""
     stats: Dict[str, int] = {}
     for part in (
         repair_hook_service_class_imports(files),
@@ -362,7 +363,7 @@ def repair_all_exports(files: Dict[str, str]) -> Dict[str, int]:
 
 
 def repair_hook_service_exports(files: Dict[str, str]) -> Dict[str, int]:
-    """Add service re-exports when hooks import names that are missing."""
+    """当 hook import 了 service 中不存在的符号时，补充 re-export 或桩函数。"""
     repaired_files = 0
     alias_count = 0
 

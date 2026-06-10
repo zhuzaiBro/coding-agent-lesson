@@ -1,4 +1,4 @@
-"""Deterministic fallback files for common local shadcn/ui imports."""
+"""为常见本地 shadcn/ui import 提供确定性兜底文件。"""
 import re
 from pathlib import Path
 from typing import Dict, Optional, Set
@@ -232,7 +232,7 @@ FALLBACKS = {
 
 
 def add_missing_ui_fallbacks(files: Dict[str, str]) -> Dict[str, int]:
-    """Add local fallback files for imported shadcn/ui modules that are absent."""
+    """为缺失的 shadcn/ui 模块 import 补充本地兜底文件。"""
     added = 0
     unknown = 0
 

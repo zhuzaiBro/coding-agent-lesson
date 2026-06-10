@@ -1,4 +1,4 @@
-"""Build concrete file/import context blocks for LLM human messages."""
+"""为 LLM human 消息构建具体的文件/import 上下文块。"""
 import re
 from pathlib import PurePosixPath
 from typing import List, Optional, Set
@@ -46,7 +46,7 @@ def format_files_with_exports(
     label: str,
     path_prefix: Optional[str] = None,
 ) -> str:
-    """File list with parsed named + default exports for strict import constraints."""
+    """带 named/default export 解析的文件列表，用于严格 import 约束。"""
     lines: List[str] = [f"{label}:"]
     any_file = False
     for item in files:
@@ -76,7 +76,7 @@ def format_files_with_exports(
 
 
 def service_import_manifest(service_files: List[dict]) -> str:
-    """How hooks must import each generated service file."""
+    """说明 hooks 应如何 import 各已生成的 service 文件。"""
     lines: List[str] = []
     for item in service_files:
         if not isinstance(item, dict):
@@ -93,8 +93,8 @@ def service_import_manifest(service_files: List[dict]) -> str:
 
 def service_export_catalog(service_files: List[dict]) -> str:
     """
-    Per-service allowed hook import symbols (parsed from generated code).
-    Hooks must ONLY import symbols listed under allowedSymbols.
+    各 service 允许被 hook import 的符号（从生成代码解析）。
+    Hooks 只能 import allowedSymbols 中列出的符号。
     """
     lines: List[str] = ["Service export catalog (hooks MUST obey — no other symbols):"]
     any_service = False
@@ -129,7 +129,7 @@ def service_export_catalog(service_files: List[dict]) -> str:
 
 
 def mock_import_manifest(mock_files: List[dict]) -> str:
-    """How services must import each mock data file."""
+    """说明 services 应如何 import 各 mock 数据文件。"""
     lines: List[str] = []
     for item in mock_files:
         if not isinstance(item, dict):
@@ -160,7 +160,7 @@ def type_import_manifest(type_files: List[dict]) -> str:
 
 
 def expected_service_paths(mock_files: List[dict]) -> List[str]:
-    """Derive required service paths from mock data paths (naming contract)."""
+    """根据 mock 数据路径推导必需的 service 路径（命名约定）。"""
     paths: List[str] = []
     for item in mock_files:
         if not isinstance(item, dict):
@@ -178,12 +178,12 @@ def expected_service_paths(mock_files: List[dict]) -> List[str]:
 
 
 def hook_import_manifest(service_files: List[dict], _mock_files: Optional[List[dict]] = None) -> str:
-    """Allowed service imports for hook files — only paths that exist in service output."""
+    """Hook 文件允许的 service import — 仅限 service 输出中存在的路径。"""
     return service_import_manifest(service_files)
 
 
 def project_files_summary(state_files: List[dict], kinds: Optional[Set[str]] = None) -> str:
-    """Compact inventory for downstream generators (pages/components)."""
+    """供下游生成器（pages/components）使用的紧凑文件清单。"""
     kind_map = {
         "/components/": "component",
         "/pages/": "page",

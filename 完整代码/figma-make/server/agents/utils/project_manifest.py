@@ -1,4 +1,4 @@
-"""Build a machine-readable project DSL/manifest from pipeline state for downstream LLMs."""
+"""从流水线 state 构建机器可读的项目 DSL/Manifest，供下游 LLM 使用。"""
 import json
 import re
 from pathlib import PurePosixPath
@@ -29,7 +29,7 @@ def _parse_exports(content: str) -> List[str]:
 
 
 def _parse_default_export_name(content: str, path: str) -> Optional[str]:
-    """Best-effort extraction of the default export symbol."""
+    """尽力提取 default export 符号名。"""
     code = content or ""
     patterns = [
         r"""export\s+default\s+function\s+(\w+)""",
@@ -84,7 +84,7 @@ def _normalize_path(path: str) -> str:
 
 
 def _import_path(from_path: str, target_path: str) -> str:
-    """Build extensionless relative import path from one generated file to another."""
+    """构建从一个生成文件到另一个的无扩展名相对 import 路径。"""
     from_dir = PurePosixPath(_normalize_path(from_path)).parent
     target = PurePosixPath(_normalize_path(target_path)).with_suffix("")
     relative = PurePosixPath(
@@ -143,7 +143,7 @@ def _allowed_import_forms(
 
 
 def _collect_files_from_state(state: dict) -> Dict[str, str]:
-    """Flatten pipeline state into path -> code."""
+    """将流水线 state 展平为 path -> code 映射。"""
     files: Dict[str, str] = {}
 
     def add(path: Optional[str], code: Optional[str]) -> None:
@@ -176,7 +176,7 @@ def _collect_files_from_state(state: dict) -> Dict[str, str]:
 
 
 def build_project_manifest(state: dict) -> Dict[str, Any]:
-    """DSL consumed by page/app LLM: only listed exports/imports are allowed."""
+    """供 page/app LLM 消费的 DSL：仅允许清单中的 exports/imports。"""
     files = _collect_files_from_state(state)
     modules: List[Dict[str, Any]] = []
 
@@ -233,18 +233,18 @@ def build_project_manifest(state: dict) -> Dict[str, Any]:
 
 
 def manifest_for_llm(state: dict) -> str:
-    """Compact JSON string for human/LLM prompts."""
+    """供 human/LLM prompt 使用的紧凑 JSON 字符串。"""
     manifest = build_project_manifest(state)
     return json.dumps(manifest, ensure_ascii=False, indent=2)
 
 
 def manifest_for_file_map(file_map: Dict[str, str]) -> str:
-    """Build manifest text from a flat path → content map (modification / debug flows)."""
+    """从扁平 path → content 映射构建 manifest（修改 / 调试流程）。"""
     return manifest_for_llm({"files": {"files": file_map}})
 
 
 def apply_file_map_to_state(state: dict, files: Dict[str, str]) -> dict:
-    """Write repaired service/hooks files back into state."""
+    """将修复后的 service/hooks 文件写回 state。"""
     updates: dict = {}
 
     def patch_files(state_key: str) -> None:

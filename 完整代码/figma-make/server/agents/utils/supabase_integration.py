@@ -34,7 +34,7 @@ def needs_database_connection(state: dict) -> bool:
 
 
 def request_wants_supabase(state: dict) -> bool:
-    """Backward-compatible alias."""
+    """向后兼容别名。"""
     return needs_database_connection(state)
 
 
@@ -46,7 +46,7 @@ def _normalize_intent_type(analysis: dict) -> str:
 
 
 def is_database_inquiry(state: dict) -> bool:
-    """QA + needs live database → inquiry branch (not code generation)."""
+    """QA 且需要联库 → 走问询分支（非代码生成）。"""
     analysis = state.get("analysis") or {}
     return _normalize_intent_type(analysis) == "QA" and needs_database_connection(state)
 
@@ -56,34 +56,34 @@ def format_supabase_prompt_block(supabase: Optional[Dict[str, Any]]) -> str:
         return ""
 
     parts = [
-        "\n【Supabase backend — use real project connection, do not mock DB】\n",
-        f"- Project URL: {supabase.get('projectUrl', '(see MCP)')}\n",
+        "\n【Supabase 后端 — 使用真实项目连接，不要 Mock 数据库】\n",
+        f"- 项目 URL: {supabase.get('projectUrl', '(见 MCP)')}\n",
     ]
     if supabase.get("publishableKey"):
         parts.append(
-            "- Use env vars VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in generated code "
-            "(never hardcode secrets in source).\n"
+            "- 生成代码中使用环境变量 VITE_SUPABASE_URL 与 VITE_SUPABASE_ANON_KEY "
+            "（切勿在源码中硬编码密钥）。\n"
         )
     if supabase.get("schemaSummary"):
-        parts.append("\n### Database schema (from Supabase MCP)\n")
+        parts.append("\n### 数据库 Schema（来自 Supabase MCP）\n")
         parts.append(str(supabase["schemaSummary"])[:12000])
         parts.append("\n")
     if supabase.get("typescriptTypes"):
-        parts.append("\n### Generated DB types (place at /types/database.ts)\n")
+        parts.append("\n### 生成的 DB 类型（放在 /types/database.ts）\n")
         parts.append(str(supabase["typescriptTypes"])[:8000])
         parts.append("\n")
     parts.append(
-        "- Use @supabase/supabase-js for client; align table/column names with schema above.\n"
-        "- Enable RLS-safe patterns; do not invent tables not listed unless user explicitly asks.\n"
+        "- 客户端使用 @supabase/supabase-js；表名/列名须与上方 schema 一致。\n"
+        "- 采用 RLS 安全写法；除非用户明确要求，不得虚构未列出的表。\n"
     )
     if supabase.get("readOnly") is False:
         parts.append(
-            "- Backend MCP can apply_migration / execute_sql to edit schema when user explicitly "
-            "requests new tables or columns; generated app code should match resulting schema.\n"
+            "- 后端 MCP 可在用户明确要求新表/列时通过 apply_migration / execute_sql 修改 schema；"
+            "生成应用代码须与最终 schema 一致。\n"
         )
     else:
         parts.append(
-            "- Database MCP is read-only: only query existing tables in code, do not assume "
-            "server will CREATE TABLE unless user will run migrations manually.\n"
+            "- 数据库 MCP 为只读：代码中仅查询已有表，勿假设服务端会 CREATE TABLE，"
+            "除非用户将手动执行迁移。\n"
         )
     return "".join(parts)
