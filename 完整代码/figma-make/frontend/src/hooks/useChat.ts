@@ -376,7 +376,11 @@ export function useChat() {
             if (isFinalFilesEvent) {
               const filesPayload = data as {
                 files?: Record<string, string>;
-                stats?: { compileError?: string; compileChecked?: boolean };
+                stats?: {
+                  compileError?: string;
+                  compileChecked?: boolean;
+                  compileSkipped?: boolean;
+                };
               };
               if (filesPayload.files) {
                 console.log(
@@ -406,11 +410,15 @@ export function useChat() {
                   fileCount: Object.keys(filesPayload.files).length,
                 });
 
-                if (filesPayload.stats?.compileError) {
+                if (
+                  filesPayload.stats?.compileError &&
+                  !filesPayload.stats?.compileSkipped
+                ) {
                   addThought(assistantId, {
                     key: `compile-warn-${Date.now()}`,
                     title: "编译检查未通过",
                     description:
+                      filesPayload.stats.compileError.slice(0, 500) ||
                       "代码已加载到预览，但本地构建有告警。可在代码视图中修改后重试。",
                     status: "success",
                   });
