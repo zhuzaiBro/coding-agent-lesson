@@ -99,6 +99,23 @@ async def supabase_oauth_callback(
             f"{frontend}/auth/supabase/callback?error=invalid_state"
         )
 
+    # 仅一个可访问项目时自动写入 session，无需前端弹窗或改 .env
+    env_ref = os.getenv("SUPABASE_PROJECT_REF", "").strip()
+    if not env_ref and not get_session_project(session_id):
+        token = get_access_token_for_session(session_id)
+        if token:
+            try:
+                projects = await fetch_accessible_projects(token)
+                if len(projects) == 1:
+                    set_session_project(
+                        session_id,
+                        projects[0]["ref"],
+                        projects[0].get("name", ""),
+                    )
+                    reset_supabase_mcp_client()
+            except Exception as err:
+                print(f"[Supabase OAuth] 单项目自动绑定失败: {err}")
+
     response = RedirectResponse(f"{frontend}/auth/supabase/callback?success=1")
     response.set_cookie(
         key=OAUTH_COOKIE,
