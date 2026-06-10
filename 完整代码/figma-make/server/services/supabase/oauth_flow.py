@@ -173,6 +173,39 @@ def complete_authorization(code: str, state: str) -> Optional[str]:
     return session_id
 
 
+def get_session_project(session_id: Optional[str]) -> Optional[Dict[str, str]]:
+    """返回 OAuth 会话中用户选择的项目 {ref, name}。"""
+    if not session_id or session_id not in _sessions:
+        return None
+    session = _sessions[session_id]
+    ref = (session.get("project_ref") or "").strip()
+    if not ref:
+        return None
+    return {
+        "ref": ref,
+        "name": (session.get("project_name") or ref).strip() or ref,
+    }
+
+
+def set_session_project(
+    session_id: str,
+    project_ref: str,
+    project_name: str = "",
+) -> None:
+    """将用户选择的项目写入 OAuth 会话。"""
+    ref = (project_ref or "").strip()
+    if not ref or session_id not in _sessions:
+        return
+    _sessions[session_id]["project_ref"] = ref
+    _sessions[session_id]["project_name"] = (project_name or ref).strip() or ref
+    print(f"[Supabase OAuth] 会话 {session_id[:8]}… 已选择项目 {ref}")
+
+
+def get_project_ref_for_session(session_id: Optional[str]) -> Optional[str]:
+    info = get_session_project(session_id)
+    return info["ref"] if info else None
+
+
 def get_access_token_for_session(session_id: Optional[str]) -> Optional[str]:
     if not session_id or session_id not in _sessions:
         return None

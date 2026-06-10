@@ -53,7 +53,19 @@ function mapStatus(status: SupabaseStatusResponse): {
       state: "not_configured",
       message:
         status.message ??
-        "请在服务端 .env 配置 SUPABASE_ACCESS_TOKEN 与 SUPABASE_PROJECT_REF",
+        "请点击 Supabase 在浏览器完成 OAuth 授权",
+    };
+  }
+  if (status.configured && status.schemaReady === false) {
+    return {
+      state: "error",
+      message:
+        status.message ??
+        (status.needsProjectSelection
+          ? "请选择要连接的 Supabase 项目（授权回调页会弹出列表）"
+          : status.needsProjectRef
+            ? "尚未绑定 Supabase 项目，请完成授权后选择项目"
+            : "MCP 已授权但无法读取表结构，请检查 project_ref 与数据库权限"),
     };
   }
   if (status.ok && status.projectUrl) {
@@ -148,11 +160,14 @@ export const useSupabaseStore = create<SupabaseStore>()(
             };
           }
 
-          if (!status.ok) {
+          if (!status.ok || status.schemaReady === false) {
             return {
               ok: false,
               configured: true,
-              message: get().statusMessage ?? "MCP 连接失败",
+              message:
+                get().statusMessage ??
+                status.message ??
+                "MCP 连接失败或未选择 Supabase 项目",
             };
           }
 

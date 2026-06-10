@@ -1,18 +1,31 @@
 """Supabase MCP proxy routes for health checks and schema introspection."""
+import os
+
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
-from config.supabase import build_mcp_url, is_read_only, is_supabase_configured
+from config.supabase import (
+    build_mcp_url,
+    get_project_ref,
+    has_project_ref,
+    is_read_only,
+    is_supabase_configured,
+    missing_project_ref_message,
+)
 from config.supabase import OAUTH_COOKIE
 from services.supabase.mcp_client import get_supabase_mcp_client, reset_supabase_mcp_client
 from config.app_urls import get_frontend_origin, get_supabase_oauth_redirect_uri
 from services.supabase.oauth_flow import (
     clear_session,
     complete_authorization,
+    get_access_token_for_session,
+    get_session_project,
     resolve_frontend_origin,
+    set_session_project,
     start_authorization,
 )
+from services.supabase.project_list import fetch_accessible_projects
 
 router = APIRouter()
 
@@ -24,6 +37,11 @@ class SqlRequest(BaseModel):
 class MigrationRequest(BaseModel):
     name: str = Field(description="Migration name, e.g. add_todos_table")
     query: str = Field(description="DDL SQL for apply_migration")
+
+
+class SelectProjectBody(BaseModel):
+    projectRef: str = Field(description="Supabase project ref / ID")
+    projectName: str = Field(default="", description="可选展示名")
 
 
 @router.get("/oauth/config")
@@ -102,6 +120,74 @@ async def supabase_oauth_logout(request: Request):
     return response
 
 
+@router.get("/oauth/projects")
+async def supabase_oauth_projects(request: Request):
+    """授权完成后列出当前账号可访问的 Supabase 项目。"""
+    session_id = request.cookies.get(OAUTH_COOKIE)
+    token = get_access_token_for_session(session_id)
+    if not token:
+        raise HTTPException(status_code=401, detail="请先完成 Supabase OAuth 授权")
+
+    env_ref = os.getenv("SUPABASE_PROJECT_REF", "").strip()
+    if env_ref:
+        return {
+            "projects": [
+                {"ref": env_ref, "name": env_ref, "source": "env"},
+            ],
+        }
+
+    try:
+        projects = await fetch_accessible_projects(token)
+    except Exception as error:
+        raise HTTPException(
+            status_code=502,
+            detail=f"无法获取项目列表: {error}",
+        ) from error
+
+    if not projects:
+        raise HTTPException(
+            status_code=404,
+            detail="该账号下未找到可访问的 Supabase 项目",
+        )
+    return {"projects": projects}
+
+
+@router.get("/oauth/project")
+async def supabase_oauth_project(request: Request):
+    """当前 OAuth 会话是否已选择项目。"""
+    session_id = request.cookies.get(OAUTH_COOKIE)
+    env_ref = os.getenv("SUPABASE_PROJECT_REF", "").strip()
+    if env_ref:
+        return {
+            "selected": {"ref": env_ref, "name": env_ref, "source": "env"},
+            "needsSelection": False,
+        }
+
+    selected = get_session_project(session_id)
+    has_token = bool(get_access_token_for_session(session_id))
+    return {
+        "selected": selected,
+        "needsSelection": has_token and not selected,
+    }
+
+
+@router.post("/oauth/project")
+async def supabase_oauth_select_project(request: Request, body: SelectProjectBody):
+    """将用户选择的项目写入 OAuth 会话（无需改服务器 .env）。"""
+    session_id = request.cookies.get(OAUTH_COOKIE)
+    if not session_id or not get_access_token_for_session(session_id):
+        raise HTTPException(status_code=401, detail="请先完成 OAuth 授权")
+
+    ref = body.projectRef.strip()
+    if not ref:
+        raise HTTPException(status_code=400, detail="projectRef 不能为空")
+
+    set_session_project(session_id, ref, body.projectName)
+    reset_supabase_mcp_client()
+    name = (body.projectName or ref).strip() or ref
+    return {"ok": True, "projectRef": ref, "projectName": name}
+
+
 def _mcp_database_capabilities() -> dict:
     """当前进程可用的数据库相关 MCP 工具说明。"""
     read_only = is_read_only()
@@ -136,13 +222,38 @@ async def supabase_status():
             "mcpUrl": build_mcp_url(),
             **caps,
         }
+    if not has_project_ref():
+        return {
+            "configured": True,
+            "authMethod": "oauth",
+            "ok": False,
+            "needsProjectRef": True,
+            "needsProjectSelection": True,
+            "schemaReady": False,
+            "projectRef": None,
+            "message": missing_project_ref_message(),
+            "mcpUrl": build_mcp_url(),
+            **caps,
+        }
     try:
         client = get_supabase_mcp_client()
         ping = await client.ping()
-        return {"configured": True, **ping, **caps}
+        return {
+            "configured": True,
+            "authMethod": "oauth",
+            "projectRef": ping.get("projectRef") or get_project_ref() or None,
+            "needsProjectRef": not has_project_ref(),
+            "needsProjectSelection": False,
+            "schemaReady": ping.get("schemaReady", False),
+            **ping,
+            **caps,
+        }
     except Exception as error:
         reset_supabase_mcp_client()
-        raise HTTPException(status_code=502, detail=str(error)) from error
+        detail = str(error)
+        if "project_ref" in detail.lower() or "project_id" in detail.lower():
+            detail = missing_project_ref_message()
+        raise HTTPException(status_code=502, detail=detail) from error
 
 
 @router.get("/schema")

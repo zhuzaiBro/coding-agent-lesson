@@ -22,7 +22,10 @@ from routes.chat import router as chat_router
 from routes.upload import router as upload_router
 from routes.supabase import router as supabase_router
 from routes.figma import router as figma_router
-from services.supabase.oauth_flow import get_access_token_for_session
+from services.supabase.oauth_flow import (
+    get_access_token_for_session,
+    get_project_ref_for_session,
+)
 from services.figma.oauth_flow import get_access_token_for_session as get_figma_token_for_session
 from config.supabase import OAUTH_COOKIE, set_request_oauth_context
 from config.figma import FIGMA_OAUTH_COOKIE, set_request_figma_oauth_token
@@ -54,6 +57,7 @@ async def mcp_oauth_context_middleware(request: Request, call_next):
     set_request_oauth_context(
         supabase_sid,
         get_access_token_for_session(supabase_sid),
+        get_project_ref_for_session(supabase_sid),
     )
     figma_sid = request.cookies.get(FIGMA_OAUTH_COOKIE)
     set_request_figma_oauth_token(get_figma_token_for_session(figma_sid))

@@ -11,7 +11,16 @@ from typing import Any, Dict, Optional
 
 import httpx
 
-from config.supabase import build_mcp_url, get_access_token, is_supabase_configured
+from config.supabase import (
+    build_mcp_url,
+    extract_project_ref_from_url,
+    get_access_token,
+    get_project_ref,
+    has_project_ref,
+    is_supabase_configured,
+    missing_project_ref_message,
+    set_runtime_project_ref,
+)
 
 _client_instance: Optional["SupabaseMCPClient"] = None
 
@@ -150,13 +159,61 @@ class SupabaseMCPClient:
         except Exception:
             pass
 
-    async def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> str:
+    def _rebind_scoped_url(self) -> None:
+        """project_ref 解析后切换为带 project_ref 的 MCP URL。"""
+        new_url = build_mcp_url()
+        if new_url != self.url:
+            self.url = new_url
+            self._initialized = False
+            self._session_id = None
+
+    async def ensure_project_scoped(self) -> str:
+        """
+        确保 MCP URL 含 project_ref（list_tables / execute_sql 必需）。
+
+        优先级：.env > OAuth 会话选择 > get_project_url 自动解析。
+        """
+        if has_project_ref():
+            self._rebind_scoped_url()
+            await self.initialize()
+            return get_project_ref()
+
+        await self.initialize()
+        result = await self._send_request(
+            "tools/call",
+            {"name": "get_project_url", "arguments": {}},
+        )
+        project_url = extract_mcp_tool_text(result).strip()
+        discovered = extract_project_ref_from_url(project_url)
+        if not discovered:
+            raise RuntimeError(missing_project_ref_message())
+
+        set_runtime_project_ref(discovered)
+        self._rebind_scoped_url()
+        await self.initialize()
+        return discovered
+
+    async def call_tool_raw(self, tool_name: str, arguments: Dict[str, Any]) -> str:
+        """调用 MCP 工具，不强制 project_ref（用于 list_projects 等账号级工具）。"""
         await self.initialize()
         result = await self._send_request(
             "tools/call",
             {"name": tool_name, "arguments": arguments},
         )
         return extract_mcp_tool_text(result)
+
+    async def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> str:
+        await self.initialize()
+        if tool_name not in ("get_project_url", "list_projects"):
+            await self.ensure_project_scoped()
+        result = await self._send_request(
+            "tools/call",
+            {"name": tool_name, "arguments": arguments},
+        )
+        return extract_mcp_tool_text(result)
+
+    async def list_projects(self) -> str:
+        return await self.call_tool_raw("list_projects", {})
 
     async def list_tables(self, *, verbose: bool = True, schemas: Optional[list] = None) -> str:
         return await self.call_tool(
@@ -196,10 +253,28 @@ class SupabaseMCPClient:
         return await self.call_tool("get_advisors", {"type": advisor_type})
 
     async def ping(self) -> Dict[str, Any]:
-        """Lightweight connectivity check."""
-        await self.initialize()
-        url = await self.get_project_url()
-        return {"ok": True, "projectUrl": url.strip(), "mcpUrl": self.url}
+        """连通性检查：解析 project_ref 并尝试拉取表结构。"""
+        project_ref = await self.ensure_project_scoped()
+        project_url = (await self.get_project_url()).strip()
+        schema_ready = False
+        schema_error = ""
+        try:
+            preview = await self.list_tables(verbose=False)
+            schema_ready = bool(preview and "project_id" not in preview.lower())
+        except Exception as error:
+            schema_error = str(error)[:500]
+
+        payload: Dict[str, Any] = {
+            "ok": True,
+            "projectUrl": project_url,
+            "projectRef": project_ref,
+            "mcpUrl": self.url,
+            "schemaReady": schema_ready,
+        }
+        if not schema_ready:
+            payload["ok"] = False
+            payload["message"] = schema_error or missing_project_ref_message()
+        return payload
 
 
 def get_supabase_mcp_client() -> SupabaseMCPClient:
@@ -215,6 +290,9 @@ def get_supabase_mcp_client() -> SupabaseMCPClient:
 
 
 def reset_supabase_mcp_client() -> None:
-    """Reset singleton (for tests or config reload)."""
+    """Reset singleton（测试、配置重载或 OAuth 登出）。"""
     global _client_instance
+    from config.supabase import clear_runtime_project_ref
+
     _client_instance = None
+    clear_runtime_project_ref()
