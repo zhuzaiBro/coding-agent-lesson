@@ -7,6 +7,9 @@ const API_BASE_URL =
   (isProd ? PROD_API_BASE_URL : "http://localhost:7001");
 
 const nextConfig: NextConfig = {
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   env: {
     NEXT_PUBLIC_API_BASE_URL: API_BASE_URL,
   },

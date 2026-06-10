@@ -121,7 +121,9 @@ function SupabaseAuthCallbackContent() {
       <SupabaseProjectPickerDialog
         open={showPicker}
         projects={projects}
-        onComplete={completeConnection}
+        onComplete={async () => {
+          await completeConnection();
+        }}
       />
     </>
   );
