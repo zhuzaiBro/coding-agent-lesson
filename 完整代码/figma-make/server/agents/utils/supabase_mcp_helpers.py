@@ -1,10 +1,10 @@
-"""Shared helpers for Supabase MCP subgraph nodes."""
+"""Supabase MCP 子图节点的共享辅助函数。"""
 import json
 import re
 
 
 def parse_publishable_anon_key(keys_text: str) -> str:
-    """Best-effort extract anon/public key from MCP text/json."""
+    """从 MCP 返回的文本/JSON 中尽力提取 anon/public key。"""
     if not keys_text:
         return ""
     try:

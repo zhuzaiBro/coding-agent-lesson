@@ -7,8 +7,7 @@ Figma URL 检测工具（单一来源）
 import re
 from typing import List, Optional
 
-# Figma URL regex pattern
-# Supports:
+# Figma URL 正则，支持：
 #   https://www.figma.com/file/xxx
 #   https://www.figma.com/design/xxx
 #   https://www.figma.com/proto/xxx
@@ -21,21 +20,21 @@ FIGMA_URL_REGEX = re.compile(
 
 def extract_figma_url(messages: List[any]) -> Optional[str]:
     """
-    Extract Figma URL from message list.
+    从消息列表中提取 Figma URL。
 
-    Iterates in reverse order (most recent message first).
+    倒序遍历，优先取最新消息中的链接。
 
     Args:
-        messages: List of message objects
+        messages: 消息对象列表
     Returns:
-        Figma URL string or None
+        Figma URL 字符串，未找到则返回 None
     """
     if not messages or not isinstance(messages, list):
         return None
 
-    # Iterate in reverse order, prioritize most recent URL
+    # 倒序遍历，优先使用最新 URL
     for msg in reversed(messages):
-        # Extract message text content (supports string and content array formats)
+        # 提取消息文本（支持字符串与 content 数组格式）
         if isinstance(msg, dict):
             content = msg.get("content", "")
         else:

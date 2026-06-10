@@ -1,4 +1,4 @@
-"""Apply LLM file patches and run export repair."""
+"""应用 LLM 文件补丁并执行 export 修复。"""
 from typing import Dict, List
 
 from agents.flows.traditional.assembly.schemas.file_patch_schema import FilePatch
@@ -16,10 +16,10 @@ def apply_patches_to_file_map(
     for patch in patches:
         resolved = resolve_patch_path(patch.path, updated)
         if not resolved:
-            print(f"[FilePatch] Skip unknown path: {patch.path}")
+            print(f"[FilePatch] 跳过未知路径: {patch.path}")
             continue
         updated[resolved] = normalize_code_content(patch.content)
         applied += 1
-        print(f"[FilePatch] Patched {resolved}: {patch.reason or '(no reason)'}")
+        print(f"[FilePatch] 已修补 {resolved}: {patch.reason or '(无原因)'}")
     repair_all_exports(updated)
     return updated, applied

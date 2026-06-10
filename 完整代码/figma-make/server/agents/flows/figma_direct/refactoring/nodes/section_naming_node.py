@@ -1,7 +1,7 @@
 """
-Figma direct flow - Section Naming node.
+Figma 直连流程 - Section 命名节点。
 
-Uses AI to give semantic names to each section.
+调用 LLM 为每个几何分组后的 Section 赋予语义化组件名。
 """
 import json
 
@@ -17,22 +17,22 @@ from agents.utils.retry import with_retry
 
 
 async def section_naming_node(state: dict) -> dict:
-    """Name sections using AI based on content and structure."""
-    print("\n[SectionNamingNode] Naming sections with AI...")
+    """根据内容与结构为 Section 命名（调用 AI）。"""
+    print("\n[SectionNamingNode] 正在使用 AI 为 Section 命名...")
 
     geometry_groups = state.get("geometryGroups", [])
     if not geometry_groups:
-        print("[SectionNamingNode] No geometry groups found, skipping")
+        print("[SectionNamingNode] 未找到 geometryGroups，跳过")
         return {}
 
     geo_group = geometry_groups[0] if geometry_groups else {}
     sections = geo_group.get("sections", [])
 
     if not sections:
-        print("[SectionNamingNode] No sections found, skipping")
+        print("[SectionNamingNode] 未找到 sections，跳过")
         return {}
 
-    # Prepare sections info for the prompt
+    # 整理 Section 信息供 prompt 使用
     sections_info = []
     for s in sections:
         sections_info.append({
@@ -58,13 +58,13 @@ async def section_naming_node(state: dict) -> dict:
         structured_model,
         prompt,
         max_retries=3,
-        on_retry=lambda attempt, err: print(f"[SectionNamingNode] Retry {attempt}: {err}"),
+        on_retry=lambda attempt, err: print(f"[SectionNamingNode] 重试 {attempt}: {err}"),
     )
 
     result_dict = result.model_dump() if hasattr(result, "model_dump") else result
     named_sections = result_dict.get("namedSections", [])
 
-    print(f"[SectionNamingNode] Named {len(named_sections)} sections:")
+    print(f"[SectionNamingNode] 已命名 {len(named_sections)} 个 Section:")
     for ns in named_sections:
         print(f"  Section {ns.get('index')}: {ns.get('componentName')} - {ns.get('description')}")
 

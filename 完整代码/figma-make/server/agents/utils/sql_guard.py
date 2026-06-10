@@ -1,4 +1,4 @@
-"""Read-only SQL guard for inquiry / MCP execute_sql."""
+"""问询 / MCP execute_sql 的只读 SQL 守卫。"""
 import re
 
 _WRITE_PATTERN = re.compile(
@@ -8,7 +8,7 @@ _WRITE_PATTERN = re.compile(
 
 
 def is_read_only_sql(query: str) -> bool:
-    """Return True if query appears to be read-only (SELECT / WITH / EXPLAIN)."""
+    """判断查询是否看起来为只读（SELECT / WITH / EXPLAIN 等）。"""
     text = (query or "").strip()
     if not text:
         return False

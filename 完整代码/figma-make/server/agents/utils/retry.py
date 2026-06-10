@@ -14,12 +14,12 @@ DEFAULT_MAX_RETRIES = 3
 
 def _default_error_feedback(error: Exception) -> str:
     return (
-        f"⚠️ The previous generation failed with error:\n{str(error)}\n\n"
-        "Please carefully check and fix the following issues:\n"
-        "1. Ensure all enum fields use only schema-defined valid values\n"
-        "2. Ensure JSON format is correct with no missing required fields\n"
-        "3. Ensure code syntax is correct\n\n"
-        "Please regenerate the correct output:"
+        f"⚠️ 上一次生成失败，错误信息：\n{str(error)}\n\n"
+        "请仔细检查并修复以下问题：\n"
+        "1. 确保所有枚举字段仅使用 schema 定义的有效值\n"
+        "2. 确保 JSON 格式正确，无缺失必填字段\n"
+        "3. 确保代码语法正确\n\n"
+        "请重新生成正确的输出："
     )
 
 
@@ -31,18 +31,18 @@ async def with_retry(
     format_error_feedback: Optional[Callable[[Exception], str]] = None,
 ) -> Any:
     """
-    LLM call executor with retry capability.
+    带重试能力的 LLM 调用执行器。
 
-    On retry, automatically appends error feedback message to let LLM correct its output.
+    重试时自动追加错误反馈消息，让 LLM 修正输出。
 
     Args:
-        model: Invokable model (must have ainvoke method)
-        messages: Initial messages list
-        max_retries: Maximum number of retry attempts
-        on_retry: Callback called on each retry (attempt, error)
-        format_error_feedback: Custom error feedback message generator
+        model: 可调用模型（需有 ainvoke 方法）
+        messages: 初始消息列表
+        max_retries: 最大重试次数
+        on_retry: 每次重试时的回调 (attempt, error)
+        format_error_feedback: 自定义错误反馈消息生成器
     Returns:
-        Execution result
+        执行结果
     """
     feedback_fn = format_error_feedback or _default_error_feedback
     last_error: Optional[Exception] = None
@@ -57,7 +57,7 @@ async def with_retry(
             if attempt < max_retries:
                 if on_retry:
                     on_retry(attempt, last_error)
-                # Append error feedback for next retry
+                # 追加错误反馈供下次重试使用
                 current_messages = list(messages) + [HumanMessage(content=feedback_fn(last_error))]
 
     raise last_error

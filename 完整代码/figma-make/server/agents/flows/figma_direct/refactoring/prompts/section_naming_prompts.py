@@ -1,4 +1,9 @@
-"""Section naming prompts for Figma direct flow."""
+"""
+Figma 直连流程 - Section 命名 Prompt。
+
+供 section_naming_node 调用 LLM 为页面区域生成语义化组件名。
+Prompt 正文保持英文，以便模型输出稳定的 PascalCase 命名。
+"""
 from typing import Any, Dict, List
 
 

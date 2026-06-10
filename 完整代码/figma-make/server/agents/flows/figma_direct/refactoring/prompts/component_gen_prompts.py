@@ -1,4 +1,9 @@
-"""Component generation prompts for Figma direct flow."""
+"""
+Figma 直连流程 - 组件生成 Prompt。
+
+供 component_gen_node 调用 LLM，将 Figma 绝对定位 JSX 重构为响应式 React 组件。
+Prompt 正文保持英文，以保证代码生成质量。
+"""
 from typing import Any, Dict, List, Optional
 
 

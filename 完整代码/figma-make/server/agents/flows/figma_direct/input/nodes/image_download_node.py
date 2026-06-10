@@ -1,8 +1,8 @@
 """
-Figma direct flow - Image download and OSS upload node.
+Figma 直连流程 - 图片下载与 OSS 上传节点。
 
-Downloads images from Figma MCP assets and uploads to Alibaba Cloud OSS.
-Replaces original URLs with permanent OSS links in the raw code.
+从 Figma MCP 导出的资源链接下载图片，上传至阿里云 OSS，
+并将原始代码中的临时 URL 替换为永久 OSS 链接。
 """
 import re
 from typing import Any, Dict, List, Optional, Tuple
@@ -13,7 +13,7 @@ from utils.oss import batch_upload_images_to_oss
 
 
 def _normalize_asset_var_name(var_name: str) -> str:
-    """Normalize image variable names (imgImage11 -> img11)."""
+    """规范化图片变量名（如 imgImage11 -> img11）。"""
     m = re.match(r"^imgImage(.+)$", var_name, re.IGNORECASE)
     if m:
         suffix = m.group(1)
@@ -23,7 +23,7 @@ def _normalize_asset_var_name(var_name: str) -> str:
 
 
 def _extract_image_urls(code: str) -> List[Dict[str, str]]:
-    """Extract image URLs from assets code."""
+    """从 assets 代码中提取图片 URL。"""
     results = []
     pattern = r"""(?:export\s+)?const\s+(img\w+)\s*=\s*["']([^"']+)["']\s*;?"""
     for m in re.finditer(pattern, code):
@@ -34,43 +34,43 @@ def _extract_image_urls(code: str) -> List[Dict[str, str]]:
 
 
 async def _download_image(url: str) -> Optional[Dict[str, Any]]:
-    """Download a single image. Returns {buffer, content_type} or None."""
+    """下载单张图片，返回 {buffer, content_type} 或 None。"""
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(url)
             if response.status_code != 200:
-                print(f"[ImageDownload] Warning: Download failed ({response.status_code}): {url}")
+                print(f"[ImageDownload] 警告: 下载失败 ({response.status_code}): {url}")
                 return None
             content_type = response.headers.get("content-type", "image/png")
             return {"buffer": response.content, "contentType": content_type}
     except Exception as e:
-        print(f"[ImageDownload] Warning: Download error for {url}: {e}")
+        print(f"[ImageDownload] 警告: 下载出错 {url}: {e}")
         return None
 
 
 async def image_download_node(state: dict) -> dict:
-    """Download Figma images and upload to OSS, replacing URLs in code."""
+    """下载 Figma 图片并上传 OSS，替换代码中的 URL。"""
     print("\n" + "=" * 80)
-    print("[ImageDownloadNode] Starting image processing")
+    print("[ImageDownloadNode] 开始处理图片")
     print("=" * 80)
 
     raw_code = state.get("figmaCode", "")
     if not raw_code:
-        print("[ImageDownloadNode] No rawCode found, skipping image processing")
+        print("[ImageDownloadNode] 未找到 figmaCode，跳过图片处理")
         return {}
 
-    # Step 1: Extract image URLs
-    print("[ImageDownloadNode] Step 1/4: Extracting image URLs...")
+    # 步骤 1：提取图片 URL
+    print("[ImageDownloadNode] 步骤 1/4: 提取图片 URL...")
     image_urls = _extract_image_urls(raw_code)
 
     if not image_urls:
-        print("[ImageDownloadNode] No image links found, skipping")
+        print("[ImageDownloadNode] 未找到图片链接，跳过")
         return {}
 
-    print(f"   Found {len(image_urls)} image links")
+    print(f"   共发现 {len(image_urls)} 个图片链接")
 
-    # Step 2: Download images
-    print(f"\n[ImageDownloadNode] Step 2/4: Downloading {len(image_urls)} images...")
+    # 步骤 2：下载图片
+    print(f"\n[ImageDownloadNode] 步骤 2/4: 下载 {len(image_urls)} 张图片...")
 
     import asyncio
 
@@ -82,14 +82,14 @@ async def image_download_node(state: dict) -> dict:
 
     successful = [r for r in download_results if r["downloaded"]]
     failed = [r for r in download_results if not r["downloaded"]]
-    print(f"   Success: {len(successful)}, Failed: {len(failed)}")
+    print(f"   成功: {len(successful)}，失败: {len(failed)}")
 
     if not successful:
-        print("[ImageDownloadNode] All downloads failed, keeping original links")
+        print("[ImageDownloadNode] 全部下载失败，保留原始链接")
         return {}
 
-    # Step 3: Upload to OSS
-    print(f"\n[ImageDownloadNode] Step 3/4: Uploading {len(successful)} images to OSS...")
+    # 步骤 3：上传至 OSS
+    print(f"\n[ImageDownloadNode] 步骤 3/4: 上传 {len(successful)} 张图片至 OSS...")
 
     upload_input = [
         {
@@ -103,14 +103,14 @@ async def image_download_node(state: dict) -> dict:
     try:
         upload_results = await batch_upload_images_to_oss(upload_input)
     except Exception as e:
-        print(f"[ImageDownloadNode] OSS upload failed: {e}")
+        print(f"[ImageDownloadNode] OSS 上传失败: {e}")
         return {}
 
     successful_uploads = [r for r in upload_results if r.get("success")]
-    print(f"   Uploaded successfully: {len(successful_uploads)}")
+    print(f"   上传成功: {len(successful_uploads)}")
 
-    # Step 4: Replace URLs in rawCode
-    print(f"\n[ImageDownloadNode] Step 4/4: Replacing URLs...")
+    # 步骤 4：替换代码中的 URL
+    print(f"\n[ImageDownloadNode] 步骤 4/4: 替换 URL...")
     updated_code = raw_code
     replaced_count = 0
 
@@ -122,10 +122,10 @@ async def image_download_node(state: dict) -> dict:
                 updated_code = updated_code.replace(old_url, new_url)
                 replaced_count += 1
 
-    print(f"   Replaced: {replaced_count} URLs")
+    print(f"   已替换: {replaced_count} 个 URL")
 
-    # Step 5: Normalize variable names
-    print(f"\n[ImageDownloadNode] Step 5/5: Normalizing variable names...")
+    # 步骤 5：规范化变量名
+    print(f"\n[ImageDownloadNode] 步骤 5/5: 规范化变量名...")
     defined_vars = set(re.findall(r"(?:export\s+)?const\s+(img\w+)\s*=", updated_code))
     rename_map = {}
     for var_name in defined_vars:
@@ -136,11 +136,11 @@ async def image_download_node(state: dict) -> dict:
     for old, new in rename_map.items():
         updated_code = re.sub(r"\b" + re.escape(old) + r"\b", new, updated_code)
 
-    print(f"   Normalized: {len(rename_map)} variable names")
+    print(f"   已规范化: {len(rename_map)} 个变量名")
 
     print("\n" + "=" * 80)
-    print("[ImageDownloadNode] Image processing complete")
-    print(f"   Total: {len(image_urls)}, Uploaded: {len(successful_uploads)}, Failed: {len(failed)}")
+    print("[ImageDownloadNode] 图片处理完成")
+    print(f"   总计: {len(image_urls)}，已上传: {len(successful_uploads)}，失败: {len(failed)}")
     print("=" * 80 + "\n")
 
     return {"figmaCode": updated_code}

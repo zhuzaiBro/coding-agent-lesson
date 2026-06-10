@@ -23,15 +23,15 @@ MIN_THRESHOLD = 80      # 最小聚类阈值，低于此值不切割
 MAX_THRESHOLD = 500     # 最大聚类阈值，超过此值强制切割
 MIN_SECTIONS = 2
 MAX_SECTIONS = 15
-MIN_SECTION_HEIGHT = 100  # Merge sections shorter than this
+MIN_SECTION_HEIGHT = 100  # 高度低于此值的 Section 会被合并
 
 
 def cluster_by_geometry(blocks: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Cluster LayoutBlocks into sections based on Y-axis geometry."""
+    """按 Y 轴几何位置将 LayoutBlock 聚类为 Section。"""
     if not blocks:
         return {"sections": [], "threshold": 0}
 
-    # Separate background and normal elements
+    # 分离背景元素与普通元素
     normal_blocks = [b for b in blocks if not b.get("isBackground", False)]
     background_blocks = [b for b in blocks if b.get("isBackground", False)]
 
@@ -41,7 +41,7 @@ def cluster_by_geometry(blocks: List[Dict[str, Any]]) -> Dict[str, Any]:
             "threshold": 0,
         }
 
-    # Sort by top value
+    # 按 top 升序排序
     sorted_blocks = sorted(normal_blocks, key=lambda b: b.get("top", 0))
 
     if len(sorted_blocks) == 1:
@@ -50,16 +50,16 @@ def cluster_by_geometry(blocks: List[Dict[str, Any]]) -> Dict[str, Any]:
             "threshold": 0,
         }
 
-    # Calculate gaps between adjacent elements
+    # 计算相邻元素间距
     gaps = []
     for i in range(1, len(sorted_blocks)):
         gap = sorted_blocks[i].get("top", 0) - sorted_blocks[i - 1].get("top", 0)
         gaps.append(gap)
 
-    # Compute adaptive threshold
+    # 计算自适应阈值
     threshold = _compute_adaptive_threshold(gaps)
 
-    # Split by threshold
+    # 按阈值切分 Section
     groups: List[List[Dict]] = []
     current_group = [sorted_blocks[0]]
 
@@ -72,11 +72,11 @@ def cluster_by_geometry(blocks: List[Dict[str, Any]]) -> Dict[str, Any]:
             current_group.append(sorted_blocks[i])
     groups.append(current_group)
 
-    # Post-processing: merge short sections
+    # 后处理：合并过短的 Section
     groups = _merge_short_sections(groups)
     groups = _merge_excess_sections(groups)
 
-    # Build sections with background assignment
+    # 构建 Section 并分配背景元素
     sections = []
     for i, group in enumerate(groups):
         bg = _assign_backgrounds(background_blocks, group)
@@ -86,7 +86,7 @@ def cluster_by_geometry(blocks: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 
 def _compute_adaptive_threshold(gaps: List[float]) -> float:
-    """Compute adaptive threshold = median(gaps) * 1.5, clamped to [MIN, MAX]."""
+    """计算自适应阈值 = median(gaps) × 1.5，限制在 [MIN, MAX] 范围内。"""
     if not gaps:
         return MIN_THRESHOLD
 
@@ -102,7 +102,7 @@ def _compute_adaptive_threshold(gaps: List[float]) -> float:
 
 
 def _merge_short_sections(groups: List[List[Dict]]) -> List[List[Dict]]:
-    """Merge sections that are too short (height < MIN_SECTION_HEIGHT)."""
+    """合并高度低于 MIN_SECTION_HEIGHT 的 Section。"""
     if len(groups) <= MIN_SECTIONS:
         return groups
 
@@ -130,14 +130,14 @@ def _merge_short_sections(groups: List[List[Dict]]) -> List[List[Dict]]:
 
 
 def _merge_excess_sections(groups: List[List[Dict]]) -> List[List[Dict]]:
-    """Merge sections if there are more than MAX_SECTIONS."""
+    """Section 数量超过 MAX_SECTIONS 时合并相邻分组。"""
     if len(groups) <= MAX_SECTIONS:
         return groups
 
     result = list(groups)
 
     while len(result) > MAX_SECTIONS:
-        # Find adjacent sections with minimum gap
+        # 找到间距最小的相邻 Section 进行合并
         min_gap = float("inf")
         merge_idx = 0
 
@@ -156,7 +156,7 @@ def _merge_excess_sections(groups: List[List[Dict]]) -> List[List[Dict]]:
 
 
 def _assign_backgrounds(bg_blocks: List[Dict], section_blocks: List[Dict]) -> List[Dict]:
-    """Assign background blocks that overlap with a section's Y range."""
+    """将 Y 范围与 Section 重叠的背景块分配到该 Section。"""
     if not bg_blocks or not section_blocks:
         return []
 
@@ -177,7 +177,7 @@ def _build_section(
     blocks: List[Dict],
     background_blocks: List[Dict],
 ) -> Dict[str, Any]:
-    """Build a Section dict from blocks."""
+    """由布局块列表构建 Section 字典。"""
     tops = [b.get("top", 0) for b in blocks]
     top_min = min(tops) if tops else 0
     top_max = max(tops) if tops else 0
@@ -185,7 +185,7 @@ def _build_section(
     all_texts_raw = []
     for b in blocks:
         all_texts_raw.extend(b.get("texts", []))
-    all_texts = list(dict.fromkeys(all_texts_raw))  # deduplicate preserving order
+    all_texts = list(dict.fromkeys(all_texts_raw))  # 去重并保持顺序
 
     content_assets = []
     for b in blocks:

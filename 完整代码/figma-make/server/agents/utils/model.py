@@ -20,7 +20,7 @@ from pydantic import BaseModel
 
 from agents.utils.structured_model import StructuredModelWrapper
 
-# Singleton instances
+# 单例实例缓存
 _deepseek_instance: Optional[ChatOpenAI] = None
 _glm_instance: Optional[ChatOpenAI] = None
 _qwen_text_instance: Optional[ChatOpenAI] = None
@@ -28,7 +28,7 @@ _qwen_vision_instance: Optional[ChatOpenAI] = None
 
 
 def get_deepseek_model() -> ChatOpenAI:
-    """Get DeepSeek main model instance."""
+    """获取 DeepSeek 主模型实例。"""
     global _deepseek_instance
     if _deepseek_instance is None:
         _deepseek_instance = ChatOpenAI(
@@ -42,7 +42,7 @@ def get_deepseek_model() -> ChatOpenAI:
 
 
 def get_glm_model() -> ChatOpenAI:
-    """Get GLM main model instance (ZhipuAI)."""
+    """获取智谱 GLM 主模型实例。"""
     global _glm_instance
     if _glm_instance is None:
         _glm_instance = ChatOpenAI(
@@ -56,7 +56,7 @@ def get_glm_model() -> ChatOpenAI:
 
 
 def _resolve_qwen_text_model() -> str:
-    """Resolve Qwen text model for structured output / function calling."""
+    """解析用于结构化输出 / function calling 的 Qwen 文本模型。"""
     explicit = os.getenv("QWEN_TEXT_MODEL")
     if explicit:
         return explicit
@@ -69,31 +69,31 @@ def _resolve_qwen_text_model() -> str:
 
 
 def _resolve_qwen_vision_model() -> str:
-    """Resolve Qwen vision model for image analysis."""
+    """解析用于图片分析的 Qwen 视觉模型。"""
     return os.getenv("QWEN_VL_MODEL") or os.getenv("QWEN_MODEL") or "qwen-vl-max"
 
 
 def _qwen_extra_body() -> dict:
-    """DashScope: disable thinking so function_calling / tool_choice works."""
+    """DashScope：关闭 thinking 模式以支持 function_calling / tool_choice。"""
     enable = os.getenv("QWEN_ENABLE_THINKING", "false").lower() in ("1", "true", "yes")
     return {"enable_thinking": enable}
 
 
 def get_qwen_model() -> ChatOpenAI:
-    """Get Qwen text main model (DashScope compatible-mode API)."""
+    """获取 Qwen 文本主模型（DashScope 兼容模式 API）。"""
     global _qwen_text_instance
     if _qwen_text_instance is None:
         model = _resolve_qwen_text_model()
         if "vl" in model.lower():
             print(
-                f"[Model] Warning: Qwen text model '{model}' looks like a vision model. "
-                "Set QWEN_TEXT_MODEL=qwen-plus or qwen-max for code generation."
+                f"[Model] 警告: Qwen 文本模型 '{model}' 看起来像视觉模型。"
+                "代码生成请设置 QWEN_TEXT_MODEL=qwen-plus 或 qwen-max。"
             )
         thinking = _qwen_extra_body().get("enable_thinking")
         if thinking:
             print(
-                "[Model] Warning: QWEN_ENABLE_THINKING=true — structured output may fail; "
-                "will fall back to JSON prompt mode."
+                "[Model] 警告: QWEN_ENABLE_THINKING=true — 结构化输出可能失败，"
+                "将回退到 JSON prompt 模式。"
             )
         _qwen_text_instance = ChatOpenAI(
             model=model,
@@ -110,7 +110,7 @@ def get_qwen_model() -> ChatOpenAI:
 
 
 def get_qwen_vision_model() -> ChatOpenAI:
-    """Get Qwen-VL vision model instance (image analysis only)."""
+    """获取 Qwen-VL 视觉模型实例（仅用于图片分析）。"""
     global _qwen_vision_instance
     if _qwen_vision_instance is None:
         _qwen_vision_instance = ChatOpenAI(
@@ -127,29 +127,29 @@ def get_qwen_vision_model() -> ChatOpenAI:
 
 
 def get_main_model() -> ChatOpenAI:
-    """Get currently configured main model based on MAIN_MODEL_PROVIDER env var."""
+    """根据 MAIN_MODEL_PROVIDER 环境变量获取当前配置的主模型。"""
     provider = os.getenv("MAIN_MODEL_PROVIDER", "deepseek").lower()
 
     if provider == "glm":
-        print("[Model] Using GLM as main model")
+        print("[Model] 使用 GLM 作为主模型")
         return get_glm_model()
     if provider == "qwen":
-        print(f"[Model] Using Qwen as main model ({_resolve_qwen_text_model()})")
+        print(f"[Model] 使用 Qwen 作为主模型 ({_resolve_qwen_text_model()})")
         return get_qwen_model()
-    print("[Model] Using DeepSeek as main model")
+    print("[Model] 使用 DeepSeek 作为主模型")
     return get_deepseek_model()
 
 
 def get_model() -> ChatOpenAI:
-    """Alias for get_main_model() (backward compatibility)."""
+    """get_main_model() 的别名（向后兼容）。"""
     return get_main_model()
 
 
 def get_structured_model(schema: Type[BaseModel]) -> StructuredModelWrapper:
-    """Structured output with function_calling + JSON prompt fallback (Qwen thinking-safe)."""
+    """结构化输出：function_calling + JSON prompt 回退（兼容 Qwen thinking 模式）。"""
     return StructuredModelWrapper(get_main_model(), schema)
 
 
 def get_main_model_provider() -> str:
-    """Get current main model provider name."""
+    """获取当前主模型提供商名称。"""
     return os.getenv("MAIN_MODEL_PROVIDER", "deepseek")

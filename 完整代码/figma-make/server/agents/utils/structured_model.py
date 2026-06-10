@@ -1,4 +1,4 @@
-"""Structured output wrapper with Qwen/DeepSeek-compatible fallbacks."""
+"""结构化输出封装，兼容 Qwen/DeepSeek 的回退策略。"""
 import json
 import re
 from typing import Any, List, Optional, Type
@@ -65,7 +65,7 @@ def _loads_json_object(text: str) -> Optional[dict]:
 
 
 class StructuredModelWrapper:
-    """Try function_calling/json_schema; fall back to JSON-in-prompt for Qwen thinking mode, etc."""
+    """优先 function_calling/json_schema；失败时回退到 JSON-in-prompt（兼容 Qwen thinking 等）。"""
 
     STRUCTURED_METHODS = ("function_calling", "json_schema")
 
@@ -90,7 +90,7 @@ class StructuredModelWrapper:
         try:
             return self._schema.model_validate(payload)
         except ValidationError as error:
-            print(f"[Model] Schema validation failed: {error.errors()[:2]}")
+            print(f"[Model] Schema 校验失败: {error.errors()[:2]}")
             return None
 
     def _parse_structured_result(self, result: Any) -> Any:
@@ -171,9 +171,9 @@ class StructuredModelWrapper:
             indent=2,
         )
         schema_block = (
-            "\n\n【Structured JSON Output — Required】\n"
-            "Respond with ONE raw JSON object only (no markdown fences, no commentary).\n"
-            "The JSON must conform to this schema:\n"
+            "\n\n【结构化 JSON 输出 — 必填】\n"
+            "只返回一个原始 JSON 对象（无 markdown 围栏、无说明文字）。\n"
+            "JSON 必须符合以下 schema：\n"
             f"{schema_json}\n"
             f"{JSON_SAFETY_PROMPT}"
         )
@@ -203,7 +203,7 @@ class StructuredModelWrapper:
         parsed = self._recover_from_content(response)
         if parsed is None:
             raise ValueError("JSON prompt fallback could not parse model response")
-        print("[Model] Structured output via json_prompt succeeded")
+        print("[Model] 通过 json_prompt 结构化输出成功")
         return parsed
 
     async def ainvoke(self, messages: List[BaseMessage]) -> Any:
@@ -218,13 +218,13 @@ class StructuredModelWrapper:
                 return self._parse_structured_result(result)
             except Exception as error:
                 last_error = error if isinstance(error, Exception) else Exception(str(error))
-                print(f"[Model] Structured output via {method} failed: {last_error}")
+                print(f"[Model] 通过 {method} 结构化输出失败: {last_error}")
                 if _is_structured_format_unsupported(last_error):
                     skip_structured = True
 
         try:
             return await self._ainvoke_json_prompt(messages)
         except Exception as fallback_error:
-            print(f"[Model] JSON prompt fallback failed: {fallback_error}")
+            print(f"[Model] JSON prompt 回退失败: {fallback_error}")
 
         raise last_error or ValueError("Structured model returned None")

@@ -1,29 +1,29 @@
 """
-Style extractor utilities.
+样式提取工具。
 
-Extracts layout positioning info from Tailwind class names and inline styles.
-Converts JsxElement dicts to LayoutBlock dicts with coordinate information.
+从 Tailwind class 和内联 style 中提取布局定位信息，
+将 JsxElement 字典转换为带坐标的 LayoutBlock 字典。
 """
 import re
 from typing import Any, Dict, List, Optional
 
-# Decorative asset pattern: Vector, Group, MaskGroup, Ellipse
+# 装饰性资源命名模式: Vector, Group, MaskGroup, Ellipse
 _DECORATIVE_PATTERN = re.compile(r"^img(Vector|Group|MaskGroup|Ellipse)\d*$")
 
 
 def extract_texts(raw_jsx: str) -> List[str]:
-    """Extract all text content from JSX code."""
+    """从 JSX 代码中提取全部文本内容。"""
     texts = []
     for m in re.finditer(r">([^<>{]+)<", raw_jsx):
         text = m.group(1).strip()
         if text and not text.isspace():
             texts.append(text)
-    # Deduplicate preserving order
+    # 去重并保持顺序
     return list(dict.fromkeys(texts))
 
 
 def extract_used_assets(raw_jsx: str) -> List[str]:
-    """Extract referenced image variable names from JSX code."""
+    """从 JSX 代码中提取引用的图片变量名。"""
     assets = []
     for m in re.finditer(r"\{(img[A-Za-z0-9][a-zA-Z0-9]*)\}", raw_jsx):
         assets.append(m.group(1))
@@ -31,7 +31,7 @@ def extract_used_assets(raw_jsx: str) -> List[str]:
 
 
 def _parse_tailwind_layout(class_name: Optional[str]) -> Dict[str, float]:
-    """Extract positioning values from Tailwind class names."""
+    """从 Tailwind class 中提取定位数值。"""
     result = {"top": 0.0, "left": 0.0, "width": 0.0, "height": 0.0}
     if not class_name:
         return result
@@ -56,7 +56,7 @@ def _parse_tailwind_layout(class_name: Optional[str]) -> Dict[str, float]:
 
 
 def _parse_inline_style_layout(inline_style: Optional[str]) -> Dict[str, float]:
-    """Extract positioning values from inline style string."""
+    """从内联 style 字符串中提取定位数值。"""
     result = {"top": 0.0, "left": 0.0, "width": 0.0, "height": 0.0}
     if not inline_style:
         return result
@@ -76,7 +76,7 @@ def _parse_inline_style_layout(inline_style: Optional[str]) -> Dict[str, float]:
 
 
 def _detect_background(class_name: Optional[str], width: float, height: float) -> bool:
-    """Detect if element is a full-page background element."""
+    """判断是否为整页背景元素。"""
     if width >= 1200 and height >= 500:
         return True
 
@@ -88,7 +88,7 @@ def _detect_background(class_name: Optional[str], width: float, height: float) -
 
 
 def _detect_decorative(texts: List[str], used_assets: List[str]) -> bool:
-    """Detect purely decorative elements (no text, only decorative assets)."""
+    """判断是否为纯装饰元素（无文本，仅装饰性图片资源）。"""
     if texts:
         return False
     if not used_assets:
@@ -97,7 +97,7 @@ def _detect_decorative(texts: List[str], used_assets: List[str]) -> bool:
 
 
 def extract_layout_block(elem: Dict[str, Any], index: int) -> Dict[str, Any]:
-    """Convert a JsxElement to a LayoutBlock with extracted layout info."""
+    """将 JsxElement 转为带布局信息的 LayoutBlock。"""
     class_name = elem.get("className")
     inline_style = elem.get("inlineStyle")
 

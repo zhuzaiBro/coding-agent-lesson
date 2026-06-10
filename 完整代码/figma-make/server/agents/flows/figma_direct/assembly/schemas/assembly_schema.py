@@ -1,5 +1,5 @@
 """
-Figma Direct - Assembly phase type definitions.
+Figma 直连 - 组装阶段类型定义。
 """
 from typing import Dict, Optional
 
@@ -13,6 +13,6 @@ class AssemblyStats(BaseModel):
 
 class FigmaAssemblyResult(BaseModel):
     files: Dict[str, str] = Field(
-        description="Sandpack file mapping: key is file path, value is file content"
+        description="Sandpack 文件映射：键为文件路径，值为文件内容"
     )
     stats: Optional[AssemblyStats] = None

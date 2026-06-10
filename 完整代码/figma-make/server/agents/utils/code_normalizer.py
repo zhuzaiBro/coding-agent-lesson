@@ -14,9 +14,9 @@ T = TypeVar("T", bound=dict)
 
 def normalize_code_content(content: str) -> str:
     """
-    Fix escaped newline issues in code.
+    修复代码中的转义换行问题。
 
-    Replaces literal "\\n" with real newlines, "\\t" with tabs, etc.
+    将字面量 "\\n" 替换为真实换行，"\\t" 替换为制表符等。
     """
     if not content:
         return content
@@ -41,8 +41,8 @@ def normalize_code_content(content: str) -> str:
 
 def normalize_code_file(file: dict) -> dict:
     """
-    Normalize a single code file object.
-    Supports { content: str } or { code: str } format.
+    规范化单个代码文件对象。
+    支持 { content: str } 或 { code: str } 格式。
     """
     if not file:
         return file
@@ -59,7 +59,7 @@ def normalize_code_file(file: dict) -> dict:
 
 
 def normalize_code_files(files: List[dict]) -> List[dict]:
-    """Batch normalize a list of code file objects."""
+    """批量规范化代码文件对象列表。"""
     if not files or not isinstance(files, list):
         return files
     return [normalize_code_file(f) for f in files]
@@ -67,31 +67,31 @@ def normalize_code_files(files: List[dict]) -> List[dict]:
 
 def normalize_llm_result(result: Any) -> Any:
     """
-    Normalize LLM generation result.
-    Automatically detects and handles various common output formats.
+    规范化 LLM 生成结果。
+    自动识别并处理多种常见输出格式。
     """
     if not result or not isinstance(result, dict):
         return result
 
     normalized = dict(result)
 
-    # Handle single content field
+    # 处理单个 content 字段
     if isinstance(normalized.get("content"), str):
         normalized["content"] = normalize_code_content(normalized["content"])
 
-    # Handle single code field
+    # 处理单个 code 字段
     if isinstance(normalized.get("code"), str):
         normalized["code"] = normalize_code_content(normalized["code"])
 
-    # Handle files array (common in utils, types, hooks, etc.)
+    # 处理 files 数组（utils、types、hooks 等节点常见）
     if isinstance(normalized.get("files"), list):
         normalized["files"] = normalize_code_files(normalized["files"])
 
-    # Handle layoutsCode array (layout node)
+    # 处理 layoutsCode 数组（layout 节点）
     if isinstance(normalized.get("layoutsCode"), list):
         normalized["layoutsCode"] = normalize_code_files(normalized["layoutsCode"])
 
-    # Handle componentsCode array
+    # 处理 componentsCode 数组
     if isinstance(normalized.get("componentsCode"), list):
         normalized["componentsCode"] = normalize_code_files(normalized["componentsCode"])
 

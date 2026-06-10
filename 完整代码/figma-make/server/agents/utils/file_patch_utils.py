@@ -1,4 +1,4 @@
-"""Shared helpers for LLM file patch nodes (debug fix / user modify)."""
+"""LLM 文件补丁节点（debug fix / user modify）的共享辅助函数。"""
 import re
 from typing import Dict, List, Optional, Set
 
@@ -61,6 +61,7 @@ def select_context_files(
     max_files: int = 16,
     max_chars_per_file: int = 12000,
 ) -> Dict[str, str]:
+    """从文件映射中选取供 LLM 参考的上下文文件（按优先级与数量限制）。"""
     priority_paths = priority_paths or set()
     ordered: List[str] = []
 
@@ -82,6 +83,6 @@ def select_context_files(
     for path in ordered[:max_files]:
         content = file_map[path]
         if len(content) > max_chars_per_file:
-            content = content[:max_chars_per_file] + "\n/* ... truncated ... */\n"
+            content = content[:max_chars_per_file] + "\n/* ... 已截断 ... */\n"
         selected[path] = content
     return selected

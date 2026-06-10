@@ -1,4 +1,4 @@
-"""Safe accessors for LangGraph state / node output dicts."""
+"""LangGraph state / 节点输出字典的安全访问工具。"""
 from typing import Any, Dict, List
 
 
@@ -7,7 +7,7 @@ def as_dict(value: Any) -> Dict[str, Any]:
 
 
 def dict_list(parent: Any, key: str) -> List[dict]:
-    """Return parent[key] as a list of dicts; never None."""
+    """返回 parent[key] 的字典列表，永不为 None。"""
     if not isinstance(parent, dict):
         return []
     raw = parent.get(key)
@@ -17,7 +17,7 @@ def dict_list(parent: Any, key: str) -> List[dict]:
 
 
 def as_dict_list(value: Any) -> List[dict]:
-    """Return a top-level list value as list of dicts; never None."""
+    """将顶层列表值转为字典列表，永不为 None。"""
     if not isinstance(value, list):
         return []
     return [item for item in value if isinstance(item, dict)]
