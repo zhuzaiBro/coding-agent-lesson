@@ -42,16 +42,14 @@ function FigmaConnectControl({
         }
         disabled={isConnecting}
         onClick={() => void handleConnectClick()}
-        className={`relative flex items-center gap-1 rounded-md px-2 py-1 text-sm transition-colors disabled:opacity-60 ${
+        className={`relative shrink-0 rounded-md p-1.5 text-sm transition-colors disabled:opacity-60 ${
           linked
             ? "bg-[#a259ff]/15 text-[#7c3aed] ring-1 ring-[#a259ff]/40"
             : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"
         }`}
       >
         <Figma size={18} className={isConnecting ? "animate-pulse" : undefined} />
-        <span className="hidden sm:inline text-xs font-medium">
-          {linked ? "Figma 已连" : "Figma"}
-        </span>
+        <span className="sr-only">{linked ? "Figma 已连接" : "连接 Figma"}</span>
         <span
           className={`absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ${statusDot}`}
         />

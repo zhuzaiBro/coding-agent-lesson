@@ -73,3 +73,16 @@ body {
 .ant-sender-actions-btn-primary:disabled {
   opacity: 0.5;
 }
+
+/* 输入框独占一行，避免 prefix 挤压 textarea */
+.ant-sender {
+  width: 100%;
+}
+
+.ant-sender-content {
+  align-items: stretch !important;
+}
+
+.ant-sender-input {
+  min-height: 2.5rem;
+}

@@ -464,47 +464,43 @@ export function ChatPanel() {
           </div>
         )}
 
+        <div className="mb-1.5 flex items-center gap-1 px-1">
+          <FigmaConnectButton onToast={showToast} />
+          <SupabaseConnectButton onToast={showToast} />
+          <button
+            type="button"
+            className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+            title="上传图片或设计文件"
+            onClick={() => {
+              const hasDesignFile = attachedFiles.some(
+                (f) => f.type === "design",
+              );
+              const hasImageFile = attachedFiles.some(
+                (f) => f.type === "image",
+              );
+
+              if (hasDesignFile) {
+                showToast("最多只能上传 1 个设计文件", "warning");
+                return;
+              }
+
+              if (hasImageFile && attachedFiles.length >= 3) {
+                showToast("最多只能上传 3 张图片", "warning");
+                return;
+              }
+
+              fileInputRef.current?.click();
+            }}
+            disabled={isUploading}
+          >
+            {isUploading ? <LabLoading size="sm" /> : <Plus size={18} />}
+          </button>
+        </div>
+
         <Sender
           value={inputValue}
           onChange={setInputValue}
-          prefix={
-            <div className="flex items-center gap-0.5">
-              <FigmaConnectButton onToast={showToast} />
-              <SupabaseConnectButton onToast={showToast} />
-            <button
-              className="text-gray-500 hover:text-gray-700 p-1 rounded-md hover:bg-gray-100 transition-colors"
-              onClick={() => {
-                const hasDesignFile = attachedFiles.some(
-                  (f) => f.type === "design",
-                );
-                const hasImageFile = attachedFiles.some(
-                  (f) => f.type === "image",
-                );
-
-                // 检测是否达到上限
-                if (hasDesignFile) {
-                  showToast("最多只能上传 1 个设计文件", "warning");
-                  return;
-                }
-
-                if (hasImageFile && attachedFiles.length >= 3) {
-                  showToast("最多只能上传 3 张图片", "warning");
-                  return;
-                }
-
-                fileInputRef.current?.click();
-              }}
-              disabled={isUploading}
-            >
-              {isUploading ? (
-                <LabLoading size="sm" />
-              ) : (
-                <Plus size={18} />
-              )}
-            </button>
-            </div>
-          }
-          placeholder="今天你想构建什么样的应用？点击 Supabase 在浏览器授权连接"
+          placeholder="今天你想构建什么样的应用？"
           loading={isLoading}
           onSubmit={(value) => {
             if (!value?.trim() && attachedFiles.length === 0) return;

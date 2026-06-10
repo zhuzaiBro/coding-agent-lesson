@@ -37,7 +37,7 @@ export function SupabaseConnectButton({
       }
       disabled={isConnecting}
       onClick={() => void handleConnectClick()}
-      className={`relative flex items-center gap-1 rounded-md px-2 py-1 text-sm transition-colors disabled:opacity-60 ${
+      className={`relative shrink-0 rounded-md p-1.5 text-sm transition-colors disabled:opacity-60 ${
         linked && enabled
           ? "bg-[#3ecf8e]/15 text-[#1a7f4b] ring-1 ring-[#3ecf8e]/40"
           : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"
@@ -47,8 +47,8 @@ export function SupabaseConnectButton({
         size={18}
         className={isConnecting ? "animate-pulse" : undefined}
       />
-      <span className="hidden sm:inline text-xs font-medium">
-        {linked && enabled ? "已连接" : "Supabase"}
+      <span className="sr-only">
+        {linked && enabled ? "Supabase 已连接" : "连接 Supabase"}
       </span>
       <span
         className={`absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ${statusDot}`}
