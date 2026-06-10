@@ -84,6 +84,8 @@ export function useChat() {
     getCurrentThreadId, // 获取当前版本的 threadId
     saveVersion, // 保存版本快照
     setCurrentFlow, // 设置当前流程类型
+    conversationSummary,
+    applyContextCompression,
   } = useChatStore();
 
   const {
@@ -244,12 +246,35 @@ export function useChat() {
             projectId: threadId,
             files: existingFilesPayload,
             useSupabase: wantsSupabase || undefined,
+            conversationSummary,
           },
           (event) => {
             const { type, data } = event;
             console.log("[useChat] Stream Event:", type);
 
             if (type === "done") return;
+
+            if (type === "contextCompressed") {
+              const payload = data as {
+                messages?: ChatMessage[];
+                conversationSummary?: string | null;
+                removedCount?: number;
+                tokenEstimate?: number;
+                maxTokens?: number;
+              };
+              applyContextCompression(payload);
+              const removed = payload.removedCount ?? 0;
+              if (removed > 0) {
+                addThought(assistantId, {
+                  key: `context-compressed-${Date.now()}`,
+                  title: "对话上下文已压缩",
+                  description:
+                    `历史 ${removed} 条消息已合并为摘要，当前约 ${payload.tokenEstimate ?? "?"} / ${payload.maxTokens ?? "?"} tokens，继续保留最近对话。`,
+                  status: "success",
+                });
+              }
+              return;
+            }
 
             if (type === "error") {
               const payload = data as { message?: string };
@@ -596,6 +621,8 @@ export function useChat() {
       saveVersion, // 版本管理
       updateProjectName, // 项目名称更新
       setCurrentFlow, // 流程类型设置
+      conversationSummary,
+      applyContextCompression,
     ],
   );
 

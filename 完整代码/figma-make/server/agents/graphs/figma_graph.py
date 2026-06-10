@@ -55,6 +55,7 @@ class FigmaGraphState(TypedDict, total=False):
 
     # Chat history for preserving user context
     messages: List[Any]
+    conversationSummary: Optional[str]
 
     # Figma design URL - main input for Figma flow
     figmaUrl: Optional[str]

@@ -87,6 +87,8 @@ export async function generateAppStream(
     files?: Record<string, string>;
     /** 显式启用 Supabase MCP 上下文（也可由服务端根据关键词推断） */
     useSupabase?: boolean;
+    /** 多轮对话压缩摘要（与服务端 checkpoint 同步） */
+    conversationSummary?: string | null;
   },
   onChunk: (event: StreamEvent) => void,
 ): Promise<void> {
@@ -105,6 +107,9 @@ export async function generateAppStream(
           ? { files: params.files }
           : {}),
         ...(params.useSupabase ? { useSupabase: true } : {}),
+        ...(params.conversationSummary
+          ? { conversationSummary: params.conversationSummary }
+          : {}),
       }),
     });
 

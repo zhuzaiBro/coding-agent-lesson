@@ -118,6 +118,8 @@ export interface ChatState {
   currentFlow: FlowType | null; // 当前流程类型（traditional / figma）
 
   messages: ChatMessage[]; // 纯消息数据，不含 thoughts
+  /** 服务端压缩后的历史对话摘要（多轮上下文窗口） */
+  conversationSummary: string | null;
   messageThoughts: Record<string, ThoughtItem[]>; // messageId -> thoughts 映射
   isLoading: boolean;
   phaseCompletion: Record<string, { completed: number; total: number }>; // 阶段完成进度
@@ -139,6 +141,14 @@ export interface ChatState {
   /** Actions */
   addMessage: (message: ChatMessage) => void;
   setLoading: (loading: boolean) => void;
+  /** 应用服务端上下文压缩结果（裁剪 messages + 更新摘要） */
+  applyContextCompression: (payload: {
+    messages?: ChatMessage[];
+    conversationSummary?: string | null;
+    removedCount?: number;
+    tokenEstimate?: number;
+    maxTokens?: number;
+  }) => void;
 
   /** ThoughtChain Actions */
   addThought: (messageId: string, thought: ThoughtItem) => void;

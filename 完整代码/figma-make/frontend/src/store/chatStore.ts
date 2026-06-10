@@ -38,6 +38,7 @@ const chatStoreSlice: StateCreator<ChatState> = (set, get) => ({
   currentFlow: null,
 
   messages: [],
+  conversationSummary: null,
   messageThoughts: {}, // ✨ 初始化思维链映射
   isLoading: false,
   phaseCompletion: {},
@@ -54,6 +55,7 @@ const chatStoreSlice: StateCreator<ChatState> = (set, get) => ({
       versions: [], // 清空版本历史
       currentFlow: null, // 重置流程类型
       messages: [],
+      conversationSummary: null,
       messageThoughts: {},
       phaseCompletion: {},
       isLoading: false,
@@ -70,6 +72,7 @@ const chatStoreSlice: StateCreator<ChatState> = (set, get) => ({
   resetProject: () =>
     set((state) => ({
       messages: [],
+      conversationSummary: null,
       messageThoughts: {},
       phaseCompletion: {},
       isLoading: false,
@@ -122,6 +125,24 @@ const chatStoreSlice: StateCreator<ChatState> = (set, get) => ({
     set((state) => ({ messages: [...state.messages, message] })),
 
   setLoading: (loading) => set({ isLoading: loading }),
+
+  applyContextCompression: (payload) =>
+    set((state) => {
+      const nextMessages =
+        payload.messages && payload.messages.length > 0
+          ? payload.messages.map((m) => ({
+              ...m,
+              id: m.id || crypto.randomUUID(),
+            }))
+          : state.messages;
+      return {
+        messages: nextMessages,
+        conversationSummary:
+          payload.conversationSummary !== undefined
+            ? payload.conversationSummary
+            : state.conversationSummary,
+      };
+    }),
 
   addThought: (messageId, thought) =>
     set((state) => {
@@ -356,6 +377,7 @@ export const useChatStore = create<ChatState>()(
       currentVersion: state.currentVersion,
       versions: trimVersionsForStorage(state.versions),
       messages: state.messages,
+      conversationSummary: state.conversationSummary,
       messageThoughts: state.messageThoughts,
       currentFlow: state.currentFlow,
     }),

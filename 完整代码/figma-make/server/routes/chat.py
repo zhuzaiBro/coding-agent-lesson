@@ -19,6 +19,7 @@ from agents.adapters.route_registry import resolve_route_adapter
 from agents.utils.model import get_main_model_provider
 from config.mock import DEFAULT_MOCK_PRESET, MOCK_PRESETS, resolve_mock_config
 from config.chat import NODE_HANDLERS
+from agents.utils.context_window import manage_context_window
 
 
 def _missing_model_key_message() -> str | None:
@@ -104,6 +105,29 @@ async def chat(request: Request):
     if use_supabase is not None and flow == "traditional":
         input_data = {**input_data, "useSupabase": bool(use_supabase)}
 
+    # 上下文窗口：从 checkpoint / 请求体读取摘要，超限则压缩历史对话
+    existing_summary = (body.get("conversationSummary") or "").strip()
+    try:
+        snapshot = await agent.aget_state(config)
+        if snapshot and snapshot.values:
+            existing_summary = (
+                (snapshot.values.get("conversationSummary") or existing_summary)
+                or ""
+            ).strip()
+    except Exception as error:
+        print(f"[ContextWindow] 读取 checkpoint 摘要失败: {error}")
+
+    context_result = await manage_context_window(
+        input_data.get("messages") or messages,
+        existing_summary=existing_summary,
+    )
+    input_data = {
+        **input_data,
+        "messages": context_result["messages"],
+        "conversationSummary": context_result.get("conversationSummary") or "",
+    }
+    context_meta = context_result.get("meta") or {}
+
     async def event_generator():
         # 先发一个空注释包建立连接，部分浏览器/代理在收到第一条数据前不认为连接已就绪
         yield {"data": "", "event": "comment"}
@@ -119,6 +143,16 @@ async def chat(request: Request):
             return
 
         try:
+            if context_result.get("compressed"):
+                yield {
+                    "data": json.dumps(
+                        {
+                            "type": "contextCompressed",
+                            "data": context_meta,
+                        }
+                    )
+                }
+
             # stream_mode="updates" 表示每个节点完成后立即推送该节点的 State 增量
             # 而不是等整条流水线结束才一次性返回，前端可实时显示每个步骤的进度
             async for chunk in agent.astream(input_data, config, stream_mode="updates"):

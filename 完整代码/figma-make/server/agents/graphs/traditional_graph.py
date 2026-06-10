@@ -74,6 +74,7 @@ checkpointer = MemorySaver()
 class TraditionalGraphState(TypedDict, total=False):
     """传统流程 LangGraph 状态：各节点读写约定字段，由 MemorySaver 按 thread_id 持久化。"""
     messages: List[Any]
+    conversationSummary: Optional[str]
     mockConfig: Optional[Dict[str, Any]]
     textPrompt: Optional[str]
     analysis: Optional[Dict[str, Any]]

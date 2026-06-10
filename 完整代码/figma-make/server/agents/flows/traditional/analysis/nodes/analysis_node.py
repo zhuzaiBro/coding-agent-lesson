@@ -12,6 +12,7 @@ from agents.flows.traditional.analysis.schemas.analysis_schema import AnalysisRe
 from agents.utils.mock import try_execute_mock
 from agents.utils.model import get_structured_model
 from agents.utils.retry import with_retry
+from agents.utils.context_window import conversation_context_for_prompt
 
 
 def _convert_messages(raw_messages: list) -> list:
@@ -43,7 +44,12 @@ async def analysis_node(state: dict) -> dict:
         last_msg = state["messages"][-1]
         messages = _convert_messages([last_msg])
 
-    prompt = [SystemMessage(content=ANALYSIS_SYSTEM_PROMPT)] + messages
+    context_block = conversation_context_for_prompt(state, include_last_user=False)
+    system_prompt = ANALYSIS_SYSTEM_PROMPT
+    if context_block:
+        system_prompt = f"{ANALYSIS_SYSTEM_PROMPT}\n\n{context_block}"
+
+    prompt = [SystemMessage(content=system_prompt)] + messages
 
     print("\n[AnalysisNode] Starting intent analysis")
 

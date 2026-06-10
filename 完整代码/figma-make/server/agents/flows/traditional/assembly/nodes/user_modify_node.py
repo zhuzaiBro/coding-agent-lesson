@@ -17,6 +17,7 @@ from agents.utils.model import get_structured_model
 from agents.utils.project_manifest import manifest_for_file_map
 from agents.utils.prompt_context import format_path_list
 from agents.utils.retry import with_retry
+from agents.utils.context_window import conversation_context_for_prompt
 
 
 def _file_map_to_manifest_items(file_map: dict) -> list:
@@ -49,11 +50,17 @@ async def user_modify_node(state: dict) -> dict:
     )
     manifest_text = state.get("projectManifestText") or ""
 
-    human_parts = [
-        "## User change request\n",
-        user_request,
-        "\n\n",
-    ]
+    context_block = conversation_context_for_prompt(state, include_last_user=False)
+    human_parts = []
+    if context_block:
+        human_parts.extend([context_block, "\n\n"])
+    human_parts.extend(
+        [
+            "## User change request\n",
+            user_request,
+            "\n\n",
+        ]
+    )
     if manifest_text:
         human_parts.append(f"## Project import manifest\n{manifest_text}\n\n")
     human_parts.append(

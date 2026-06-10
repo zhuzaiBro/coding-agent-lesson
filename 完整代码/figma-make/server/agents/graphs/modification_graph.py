@@ -25,6 +25,7 @@ checkpointer = MemorySaver()
 
 class ModificationGraphState(TypedDict, total=False):
     messages: List[Any]
+    conversationSummary: Optional[str]
     mockConfig: Optional[Dict[str, Any]]
     existingFiles: Optional[Dict[str, str]]
     modificationRequest: Optional[str]
