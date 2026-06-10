@@ -11,7 +11,11 @@ from urllib.parse import urlencode
 
 import httpx
 
-from config.app_urls import get_frontend_origin, get_supabase_oauth_redirect_uri
+from config.app_urls import (
+    get_frontend_origin,
+    get_supabase_oauth_redirect_uri,
+    normalize_frontend_origin,
+)
 
 _OAUTH_METADATA_URL = "https://api.supabase.com/.well-known/oauth-authorization-server"
 _OAUTH_SCOPES = (
@@ -47,11 +51,18 @@ def get_oauth_redirect_uri() -> str:
 
 
 def resolve_frontend_origin(session_id: Optional[str]) -> str:
+    stored: Optional[str] = None
     if session_id and session_id in _sessions:
-        origin = _sessions[session_id].get("frontend_origin")
-        if origin:
-            return str(origin).rstrip("/")
-    return get_frontend_origin()
+        raw = _sessions[session_id].get("frontend_origin")
+        if raw:
+            stored = str(raw).rstrip("/")
+    resolved = normalize_frontend_origin(stored)
+    if stored and resolved != stored:
+        print(
+            f"[Supabase OAuth] 忽略前端 origin {stored}，"
+            f"改跳 {resolved}（线上 API 须在同站前端完成授权回调）"
+        )
+    return resolved
 
 
 def _get_or_register_client(redirect_uri: str) -> Dict[str, str]:

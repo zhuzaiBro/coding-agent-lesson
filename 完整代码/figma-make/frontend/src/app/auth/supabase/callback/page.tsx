@@ -4,12 +4,35 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Database, Loader2 } from "lucide-react";
 import { useSupabaseConnect } from "@/hooks/useSupabaseConnect";
+import { API_BASE_URL } from "@/constants/config";
+
+const PROD_FRONTEND_ORIGIN = "https://coding.zood.work";
+
+/**
+ * 本地 dev（localhost:3000）连线上 API 时，OAuth 应在线上前端完成回调；
+ * 若仍落在 localhost，自动跳到线上同路径（Cookie 在 API 域，localhost 无法带 Cookie）。
+ */
+function useRedirectLocalhostToProdIfNeeded(search: string) {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const { hostname, pathname, search: q } = window.location;
+    if (hostname !== "localhost" && hostname !== "127.0.0.1") return;
+    const apiIsProd = !API_BASE_URL.includes("localhost");
+    if (!apiIsProd) return;
+    const target = `${PROD_FRONTEND_ORIGIN}${pathname}${q || search}`;
+    window.location.replace(target);
+  }, [search]);
+}
 
 function SupabaseAuthCallbackContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { finishAfterAuth } = useSupabaseConnect();
   const [message, setMessage] = useState("正在完成 Supabase 授权...");
+  const queryString = searchParams.toString();
+  const search = queryString ? `?${queryString}` : "";
+
+  useRedirectLocalhostToProdIfNeeded(search);
 
   useEffect(() => {
     const error = searchParams.get("error");
