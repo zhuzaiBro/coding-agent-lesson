@@ -3,6 +3,8 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import {
   fetchSupabaseStatus,
   fetchSupabaseClientConfig,
+  fetchSupabaseProjects,
+  selectSupabaseProject,
   type SupabaseStatusResponse,
 } from "@/services/supabaseApi";
 import {
@@ -149,7 +151,7 @@ export const useSupabaseStore = create<SupabaseStore>()(
         });
 
         try {
-          const status = await fetchSupabaseStatus();
+          let status = await fetchSupabaseStatus();
           get().applyStatus(status);
 
           if (!status.configured) {
@@ -158,6 +160,23 @@ export const useSupabaseStore = create<SupabaseStore>()(
               configured: false,
               message: get().statusMessage ?? "服务端未配置 Supabase",
             };
+          }
+
+          if (status.needsProjectSelection) {
+            set({ statusMessage: "正在获取 Supabase 项目列表..." });
+            const projects = await fetchSupabaseProjects();
+            if (projects.length === 1) {
+              await selectSupabaseProject(projects[0]);
+              status = await fetchSupabaseStatus();
+              get().applyStatus(status);
+            } else if (projects.length > 1) {
+              return {
+                ok: false,
+                configured: true,
+                message:
+                  "检测到多个 Supabase 项目，请在授权完成页选择要连接的项目后重试",
+              };
+            }
           }
 
           if (!status.ok || status.schemaReady === false) {
