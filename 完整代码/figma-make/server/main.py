@@ -30,6 +30,23 @@ from config.figma import FIGMA_OAUTH_COOKIE, set_request_figma_oauth_token
 app = FastAPI(title="Duyi Figma Make Server")
 
 
+def _log_oauth_urls_on_startup() -> None:
+    from config.app_urls import (
+        get_api_base_url,
+        get_figma_oauth_redirect_uri,
+        get_frontend_origin,
+        get_supabase_oauth_redirect_uri,
+    )
+
+    print("[Startup] API_BASE_URL =", get_api_base_url())
+    print("[Startup] FRONTEND_URL =", get_frontend_origin())
+    print("[Startup] Supabase OAuth redirect =", get_supabase_oauth_redirect_uri())
+    print("[Startup] Figma OAuth redirect =", get_figma_oauth_redirect_uri())
+
+
+_log_oauth_urls_on_startup()
+
+
 @app.middleware("http")
 async def mcp_oauth_context_middleware(request: Request, call_next):
     """每个请求开始时解析 OAuth Cookie，供 MCP 客户端读取 access token。"""

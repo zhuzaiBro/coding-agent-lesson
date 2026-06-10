@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from config.supabase import build_mcp_url, is_read_only, is_supabase_configured
 from config.supabase import OAUTH_COOKIE
 from services.supabase.mcp_client import get_supabase_mcp_client, reset_supabase_mcp_client
-from config.app_urls import get_frontend_origin
+from config.app_urls import get_frontend_origin, get_supabase_oauth_redirect_uri
 from services.supabase.oauth_flow import (
     clear_session,
     complete_authorization,
@@ -24,6 +24,16 @@ class SqlRequest(BaseModel):
 class MigrationRequest(BaseModel):
     name: str = Field(description="Migration name, e.g. add_todos_table")
     query: str = Field(description="DDL SQL for apply_migration")
+
+
+@router.get("/oauth/config")
+async def supabase_oauth_config_info():
+    """供前端展示当前 OAuth 回调地址（排查 localhost 误配）。"""
+    return {
+        "redirectUri": get_supabase_oauth_redirect_uri(),
+        "frontendOrigin": get_frontend_origin(),
+        "docsUrl": "https://supabase.com/docs/guides/ai-tools/mcp",
+    }
 
 
 @router.get("/oauth/start")

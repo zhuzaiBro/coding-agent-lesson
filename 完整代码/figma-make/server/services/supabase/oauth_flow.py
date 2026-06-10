@@ -119,6 +119,7 @@ def start_authorization(frontend_origin: str = "") -> Tuple[str, str]:
         "scope": _OAUTH_SCOPES,
     }
     authorize_url = f"{meta['authorization_endpoint']}?{urlencode(params)}"
+    print(f"[Supabase OAuth] redirect_uri={redirect_uri}")
     return authorize_url, session_id
 
 
