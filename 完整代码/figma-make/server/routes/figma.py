@@ -47,7 +47,7 @@ async def figma_oauth_config_info(request: Request):
 
 @router.post("/oauth/config")
 async def figma_oauth_config_save(body: FigmaOAuthConfigBody):
-    """保存用户在前端 Dialog 输入的 OAuth 客户端凭证（仅服务端 session，不入库）。"""
+    """保存用户 OAuth 客户端凭证（持久化到 data/oauth/figma_sessions.json）。"""
     if not body.client_id.strip() or not body.client_secret.strip():
         raise HTTPException(status_code=400, detail="请填写 Client ID 与 Client Secret")
 
@@ -88,7 +88,7 @@ def _oauth_start_response(request: Request):
         value=session_id,
         httponly=True,
         samesite="lax",
-        max_age=60 * 60 * 24 * 7,
+        max_age=60 * 60 * 24 * 30,
     )
     return response
 
@@ -135,7 +135,7 @@ async def figma_oauth_callback(
         value=session_id,
         httponly=True,
         samesite="lax",
-        max_age=60 * 60 * 24 * 7,
+        max_age=60 * 60 * 24 * 30,
     )
     return response
 

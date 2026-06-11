@@ -29,6 +29,7 @@ from services.supabase.oauth_flow import (
 from services.figma.oauth_flow import get_access_token_for_session as get_figma_token_for_session
 from config.supabase import OAUTH_COOKIE, set_request_oauth_context
 from config.figma import FIGMA_OAUTH_COOKIE, set_request_figma_oauth_token
+from services.oauth_session_store import prune_all_oauth_stores
 
 app = FastAPI(title="Duyi Figma Make Server")
 
@@ -48,6 +49,7 @@ def _log_oauth_urls_on_startup() -> None:
 
 
 _log_oauth_urls_on_startup()
+prune_all_oauth_stores()
 
 
 @app.middleware("http")

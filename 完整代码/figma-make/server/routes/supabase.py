@@ -69,7 +69,7 @@ async def supabase_oauth_start(request: Request):
         value=session_id,
         httponly=True,
         samesite="lax",
-        max_age=60 * 60 * 24 * 7,
+        max_age=60 * 60 * 24 * 30,
     )
     return response
 
@@ -122,7 +122,7 @@ async def supabase_oauth_callback(
         value=session_id,
         httponly=True,
         samesite="lax",
-        max_age=60 * 60 * 24 * 7,
+        max_age=60 * 60 * 24 * 30,
     )
     return response
 

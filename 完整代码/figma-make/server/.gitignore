@@ -10,3 +10,6 @@ dist/
 .env
 .env.*
 !.env.example
+
+# MCP OAuth tokens（勿提交）
+data/oauth/

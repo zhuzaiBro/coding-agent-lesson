@@ -1,4 +1,4 @@
-"""Supabase MCP OAuth 2.1 (PKCE) — 浏览器授权后由服务端持有 access token。"""
+"""Supabase MCP OAuth 2.1 (PKCE) — 浏览器授权后由服务端持有 access token（持久化）。"""
 from __future__ import annotations
 
 import base64
@@ -12,10 +12,11 @@ from urllib.parse import urlencode
 import httpx
 
 from config.app_urls import (
-    get_frontend_origin,
     get_supabase_oauth_redirect_uri,
     normalize_frontend_origin,
 )
+from services.oauth_session_store import get_supabase_oauth_store
+from services.oauth_token_refresh import ensure_fresh_access_token
 
 _OAUTH_METADATA_URL = "https://api.supabase.com/.well-known/oauth-authorization-server"
 _OAUTH_SCOPES = (
@@ -25,9 +26,7 @@ _OAUTH_SCOPES = (
 
 _metadata_cache: Optional[Dict[str, Any]] = None
 _client_cache: Optional[Dict[str, str]] = None
-# session_id -> { state, code_verifier, access_token?, refresh_token?, expires_at? }
-_sessions: Dict[str, Dict[str, Any]] = {}
-_state_to_sid: Dict[str, str] = {}
+_store = get_supabase_oauth_store()
 
 
 def _pkce_pair() -> Tuple[str, str]:
@@ -52,8 +51,9 @@ def get_oauth_redirect_uri() -> str:
 
 def resolve_frontend_origin(session_id: Optional[str]) -> str:
     stored: Optional[str] = None
-    if session_id and session_id in _sessions:
-        raw = _sessions[session_id].get("frontend_origin")
+    session = _store.get_session(session_id)
+    if session:
+        raw = session.get("frontend_origin")
         if raw:
             stored = str(raw).rstrip("/")
     resolved = normalize_frontend_origin(stored)
@@ -112,13 +112,16 @@ def start_authorization(frontend_origin: str = "") -> Tuple[str, str]:
     verifier, challenge = _pkce_pair()
 
     origin = frontend_origin.strip() or None
-    _sessions[session_id] = {
-        "state": state,
-        "code_verifier": verifier,
-        "created_at": time.time(),
-        "frontend_origin": origin,
-    }
-    _state_to_sid[state] = session_id
+    _store.set_session(
+        session_id,
+        {
+            "state": state,
+            "code_verifier": verifier,
+            "created_at": time.time(),
+            "frontend_origin": origin,
+        },
+    )
+    _store.map_state(state, session_id)
 
     params = {
         "client_id": client["client_id"],
@@ -136,11 +139,10 @@ def start_authorization(frontend_origin: str = "") -> Tuple[str, str]:
 
 def complete_authorization(code: str, state: str) -> Optional[str]:
     """用授权码换 token，返回 session_id。"""
-    session_id = _state_to_sid.pop(state, None)
-    if not session_id or session_id not in _sessions:
+    session_id = _store.pop_state(state)
+    session = _store.get_session(session_id)
+    if not session_id or not session:
         return None
-
-    session = _sessions[session_id]
     if session.get("state") != state:
         return None
 
@@ -168,16 +170,19 @@ def complete_authorization(code: str, state: str) -> Optional[str]:
             "access_token": tokens["access_token"],
             "refresh_token": tokens.get("refresh_token"),
             "expires_at": time.time() + expires_in,
+            "authorized_at": time.time(),
         }
     )
+    session.pop("code_verifier", None)
+    _store.set_session(session_id, session)
     return session_id
 
 
 def get_session_project(session_id: Optional[str]) -> Optional[Dict[str, str]]:
     """返回 OAuth 会话中用户选择的项目 {ref, name}。"""
-    if not session_id or session_id not in _sessions:
+    session = _store.get_session(session_id)
+    if not session:
         return None
-    session = _sessions[session_id]
     ref = (session.get("project_ref") or "").strip()
     if not ref:
         return None
@@ -194,10 +199,13 @@ def set_session_project(
 ) -> None:
     """将用户选择的项目写入 OAuth 会话。"""
     ref = (project_ref or "").strip()
-    if not ref or session_id not in _sessions:
+    if not ref or not _store.get_session(session_id):
         return
-    _sessions[session_id]["project_ref"] = ref
-    _sessions[session_id]["project_name"] = (project_name or ref).strip() or ref
+    _store.update_session(
+        session_id,
+        project_ref=ref,
+        project_name=(project_name or ref).strip() or ref,
+    )
     print(f"[Supabase OAuth] 会话 {session_id[:8]}… 已选择项目 {ref}")
 
 
@@ -206,23 +214,23 @@ def get_project_ref_for_session(session_id: Optional[str]) -> Optional[str]:
     return info["ref"] if info else None
 
 
+def _persist_session(session_id: str, session: Dict[str, Any]) -> None:
+    _store.set_session(session_id, session)
+
+
 def get_access_token_for_session(session_id: Optional[str]) -> Optional[str]:
-    if not session_id or session_id not in _sessions:
+    session = _store.get_session(session_id)
+    if not session:
         return None
-    session = _sessions[session_id]
-    token = session.get("access_token")
-    if not token:
-        return None
-    expires_at = session.get("expires_at", 0)
-    if expires_at and expires_at < time.time() + 30:
-        # TODO: refresh_token flow when expired
-        return None
-    return str(token)
+    return ensure_fresh_access_token(
+        session_id,
+        session,
+        get_client=lambda: _get_or_register_client(get_oauth_redirect_uri()),
+        token_endpoint=get_oauth_metadata()["token_endpoint"],
+        persist=_persist_session,
+        provider_label="Supabase",
+    )
 
 
 def clear_session(session_id: Optional[str]) -> None:
-    if session_id and session_id in _sessions:
-        state = _sessions[session_id].get("state")
-        if state and _state_to_sid.get(state) == session_id:
-            _state_to_sid.pop(state, None)
-        del _sessions[session_id]
+    _store.delete_session(session_id)

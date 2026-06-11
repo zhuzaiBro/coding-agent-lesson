@@ -1,4 +1,4 @@
-"""Figma Remote MCP OAuth — 浏览器打开 https://www.figma.com/oauth/mcp 授权。"""
+"""Figma Remote MCP OAuth — 浏览器授权（会话与客户端凭证持久化）。"""
 from __future__ import annotations
 
 import base64
@@ -12,30 +12,26 @@ from urllib.parse import urlencode
 import httpx
 
 from config.figma import get_oauth_redirect_uri
+from services.oauth_session_store import get_figma_oauth_store
+from services.oauth_token_refresh import ensure_fresh_access_token
 
 _OAUTH_METADATA_URL = "https://mcp.figma.com/.well-known/oauth-authorization-server"
 _OAUTH_SCOPES = "mcp:connect"
 
 _metadata_cache: Optional[Dict[str, Any]] = None
 _client_cache: Optional[Dict[str, str]] = None
-_user_clients: Dict[str, Dict[str, str]] = {}
-_sessions: Dict[str, Dict[str, Any]] = {}
-_state_to_sid: Dict[str, str] = {}
+_store = get_figma_oauth_store()
 
 
 def set_user_oauth_client(config_sid: str, client_id: str, client_secret: str) -> None:
     global _client_cache
     _client_cache = None
-    _user_clients[config_sid] = {
-        "client_id": client_id.strip(),
-        "client_secret": client_secret.strip(),
-    }
+    _store.set_user_client(config_sid, client_id, client_secret)
 
 
 def clear_user_oauth_client(config_sid: Optional[str]) -> None:
     global _client_cache
-    if config_sid and config_sid in _user_clients:
-        del _user_clients[config_sid]
+    _store.delete_user_client(config_sid)
     _client_cache = None
 
 
@@ -61,8 +57,10 @@ def _get_or_register_client(
 ) -> Dict[str, str]:
     global _client_cache
 
-    if user_config_sid and user_config_sid in _user_clients:
-        return _user_clients[user_config_sid]
+    if user_config_sid:
+        stored = _store.get_user_client(user_config_sid)
+        if stored:
+            return stored
 
     if _client_cache:
         return _client_cache
@@ -74,7 +72,10 @@ def _get_or_register_client(
         return _client_cache
 
     meta = get_oauth_metadata()
-    register_url = meta.get("registration_endpoint", "https://api.figma.com/v1/oauth/mcp/register")
+    register_url = meta.get(
+        "registration_endpoint",
+        "https://api.figma.com/v1/oauth/mcp/register",
+    )
     response = httpx.post(
         register_url,
         json={
@@ -116,13 +117,16 @@ def start_authorization(
     state = secrets.token_urlsafe(24)
     verifier, challenge = _pkce_pair()
 
-    _sessions[session_id] = {
-        "state": state,
-        "code_verifier": verifier,
-        "config_sid": user_config_sid,
-        "created_at": time.time(),
-    }
-    _state_to_sid[state] = session_id
+    _store.set_session(
+        session_id,
+        {
+            "state": state,
+            "code_verifier": verifier,
+            "config_sid": user_config_sid,
+            "created_at": time.time(),
+        },
+    )
+    _store.map_state(state, session_id)
 
     params = {
         "client_id": client["client_id"],
@@ -138,10 +142,10 @@ def start_authorization(
 
 
 def complete_authorization(code: str, state: str) -> Optional[str]:
-    session_id = _state_to_sid.pop(state, None)
-    if not session_id or session_id not in _sessions:
+    session_id = _store.pop_state(state)
+    session = _store.get_session(session_id)
+    if not session_id or not session:
         return None
-    session = _sessions[session_id]
     if session.get("state") != state:
         return None
 
@@ -169,26 +173,35 @@ def complete_authorization(code: str, state: str) -> Optional[str]:
             "access_token": tokens["access_token"],
             "refresh_token": tokens.get("refresh_token"),
             "expires_at": time.time() + int(tokens.get("expires_in", 3600)),
+            "authorized_at": time.time(),
         }
     )
+    session.pop("code_verifier", None)
+    _store.set_session(session_id, session)
     return session_id
 
 
+def _persist_session(session_id: str, session: Dict[str, Any]) -> None:
+    _store.set_session(session_id, session)
+
+
 def get_access_token_for_session(session_id: Optional[str]) -> Optional[str]:
-    if not session_id or session_id not in _sessions:
+    session = _store.get_session(session_id)
+    if not session:
         return None
-    session = _sessions[session_id]
-    token = session.get("access_token")
-    if not token:
-        return None
-    if session.get("expires_at", 0) < time.time() + 30:
-        return None
-    return str(token)
+    config_sid = session.get("config_sid")
+    return ensure_fresh_access_token(
+        session_id,
+        session,
+        get_client=lambda: _get_or_register_client(
+            get_oauth_redirect_uri(),
+            config_sid,
+        ),
+        token_endpoint=get_oauth_metadata()["token_endpoint"],
+        persist=_persist_session,
+        provider_label="Figma",
+    )
 
 
 def clear_session(session_id: Optional[str]) -> None:
-    if session_id and session_id in _sessions:
-        state = _sessions[session_id].get("state")
-        if state and _state_to_sid.get(state) == session_id:
-            _state_to_sid.pop(state, None)
-        del _sessions[session_id]
+    _store.delete_session(session_id)
